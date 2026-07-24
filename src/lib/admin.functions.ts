@@ -151,15 +151,18 @@ export const upsertUtilizador = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireAdmin();
     if (data.id) {
-      const upd: Record<string, unknown> = {
-        nome: data.nome,
-        papel: data.papel,
-        acesso_loja: data.acesso_loja,
-        acesso_oficina: data.acesso_oficina,
-        ativo: data.ativo,
-      };
-      if (data.password) upd.password_hash = await bcrypt.hash(data.password, 10);
-      await supabaseAdmin.from("utilizadores").update(upd).eq("id", data.id);
+      const password_hash = data.password ? await bcrypt.hash(data.password, 10) : undefined;
+      await supabaseAdmin
+        .from("utilizadores")
+        .update({
+          nome: data.nome,
+          papel: data.papel,
+          acesso_loja: data.acesso_loja,
+          acesso_oficina: data.acesso_oficina,
+          ativo: data.ativo,
+          ...(password_hash ? { password_hash } : {}),
+        })
+        .eq("id", data.id);
       return { id: data.id };
     }
     if (!data.password) throw new Error("Password obrigatória para novo utilizador.");
