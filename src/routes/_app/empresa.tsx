@@ -23,7 +23,7 @@ function EmpresaPage() {
   const { data } = useQuery({ queryKey: ["company"], queryFn: () => getCompany() });
   const save = useServerFn(updateCompany);
   const m = useMutation({
-    mutationFn: (v: Parameters<typeof updateCompany>[0]["data"]) => save({ data: v }),
+    mutationFn: (v: NonNullable<NonNullable<Parameters<typeof updateCompany>[0]>["data"]>) => save({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["company"] }),
   });
   const [state, setState] = useState<null | {

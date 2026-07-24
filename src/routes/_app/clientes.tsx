@@ -118,7 +118,7 @@ function EditDialog({
 }) {
   const save = useServerFn(upsertCliente);
   const m = useMutation({
-    mutationFn: (v: Parameters<typeof upsertCliente>[0]["data"]) => save({ data: v }),
+    mutationFn: (v: NonNullable<NonNullable<Parameters<typeof upsertCliente>[0]>["data"]>) => save({ data: v }),
     onSuccess: onSaved,
   });
   const [state, setState] = useState({
