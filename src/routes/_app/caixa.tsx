@@ -10,7 +10,7 @@ import {
   listCaixa,
   removerSaida,
 } from "@/lib/loja.functions";
-import { eur, dt, dOnly } from "@/lib/format";
+import { eur, dt, d as dOnly } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
