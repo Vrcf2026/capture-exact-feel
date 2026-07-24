@@ -66,7 +66,7 @@ function EmpresaPage() {
         <Field label="Email"><Input value={current.email} onChange={(e) => setState({ ...current, email: e.target.value })} /></Field>
         <Field label="URL do logótipo"><Input value={current.logo_url} onChange={(e) => setState({ ...current, logo_url: e.target.value })} /></Field>
         {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
-        {m.isSuccess && <div className="text-sm text-success">Guardado.</div>}
+        {m.isSuccess && <div className="text-sm text-primary">Guardado.</div>}
         <Button type="submit" disabled={m.isPending}>{m.isPending ? "A guardar…" : "Guardar"}</Button>
       </form>
     </div>
