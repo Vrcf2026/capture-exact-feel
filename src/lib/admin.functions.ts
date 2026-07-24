@@ -104,9 +104,11 @@ export const upsertVendedor = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireAdmin();
     if (data.id) {
-      const upd: Record<string, unknown> = { nome: data.nome, ativo: data.ativo };
-      if (data.pin) upd.pin_hash = await bcrypt.hash(data.pin, 10);
-      await supabaseAdmin.from("vendedores").update(upd).eq("id", data.id);
+      const pin_hash = data.pin ? await bcrypt.hash(data.pin, 10) : undefined;
+      await supabaseAdmin
+        .from("vendedores")
+        .update({ nome: data.nome, ativo: data.ativo, ...(pin_hash ? { pin_hash } : {}) })
+        .eq("id", data.id);
       return { id: data.id };
     }
     if (!data.pin) throw new Error("PIN obrigatório para novo vendedor.");
