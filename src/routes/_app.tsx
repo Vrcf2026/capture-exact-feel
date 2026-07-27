@@ -39,6 +39,7 @@ const meQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_app")({
+  ssr: false,
   beforeLoad: async ({ location }) => {
     const u = await whoAmI();
     if (!u) {
