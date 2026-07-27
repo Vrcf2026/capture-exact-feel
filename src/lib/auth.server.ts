@@ -64,3 +64,10 @@ export async function requireLoja(): Promise<CurrentUser> {
     throw new Error("Sem acesso ao módulo Loja.");
   return u;
 }
+
+export async function requireOficina(): Promise<CurrentUser> {
+  const u = await requireUser();
+  if (!u.acesso_oficina && u.papel !== "admin")
+    throw new Error("Sem acesso ao módulo Oficina.");
+  return u;
+}
