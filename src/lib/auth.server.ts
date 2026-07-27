@@ -27,7 +27,8 @@ export function sessionConfig() {
     cookie: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax" as const,
+      // "none" para a sessão funcionar dentro do iframe do preview (cross-site)
+      sameSite: "none" as const,
       path: "/",
     },
   };
