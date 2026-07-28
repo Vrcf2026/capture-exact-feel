@@ -205,9 +205,10 @@ function OSDetalhePage() {
   });
 
   const removerAnexoM = useMutation({
-    mutationFn: (url: string) => removerAnexo({ data: { work_order_id: id, url } }),
+    mutationFn: (path: string) => removerAnexo({ data: { work_order_id: id, path } }),
     onSuccess: invalidate,
   });
+
 
   const entregarM = useMutation({
     mutationFn: () =>
@@ -336,12 +337,12 @@ function OSDetalhePage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {((os.anexos as string[] | null) ?? []).map((url) => (
-              <div key={url} className="relative group">
+            {(data?.anexos_urls ?? []).map(({ path, url }) => (
+              <div key={path} className="relative group">
                 <img src={url} alt="Anexo" className="h-24 w-full object-cover rounded-md border border-border" />
                 {!jaEntregue && (
                   <button
-                    onClick={() => removerAnexoM.mutate(url)}
+                    onClick={() => removerAnexoM.mutate(path)}
                     className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -349,6 +350,7 @@ function OSDetalhePage() {
                 )}
               </div>
             ))}
+
           </div>
           {!jaEntregue && (
             <div>
