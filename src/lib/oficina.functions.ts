@@ -252,8 +252,6 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
     });
     if (eUp) throw new Error(eUp.message);
 
-    const { data: pub } = supabaseAdmin.storage.from("anexos").getPublicUrl(path);
-
     const { data: os, error: eOs } = await supabaseAdmin
       .from("work_orders")
       .select("anexos")
@@ -261,8 +259,9 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
       .maybeSingle();
     if (eOs || !os) throw new Error(eOs?.message ?? "Ordem de serviço não encontrada.");
 
+    // Guardamos apenas o caminho no bucket (privado); o acesso é por URL assinada.
     const anexosAtuais = (os.anexos as string[] | null) ?? [];
-    const novosAnexos = [...anexosAtuais, pub.publicUrl];
+    const novosAnexos = [...anexosAtuais, path];
     const { error: eUpd } = await supabaseAdmin
       .from("work_orders")
       .update({ anexos: novosAnexos, updated_at: new Date().toISOString() })
@@ -273,7 +272,7 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
   });
 
 export const removerAnexoOS = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ work_order_id: z.string().uuid(), url: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ work_order_id: z.string().uuid(), path: z.string() }).parse(d))
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -287,7 +286,10 @@ export const removerAnexoOS = createServerFn({ method: "POST" })
     if (eOs || !os) throw new Error(eOs?.message ?? "Ordem de serviço não encontrada.");
 
     const anexosAtuais = (os.anexos as string[] | null) ?? [];
-    const novosAnexos = anexosAtuais.filter((a) => a !== data.url);
+    const novosAnexos = anexosAtuais.filter((a) => {
+      const p = a.includes("/anexos/") ? a.split("/anexos/")[1].split("?")[0] : a;
+      return p !== data.path;
+    });
     const { error: eUpd } = await supabaseAdmin
       .from("work_orders")
       .update({ anexos: novosAnexos, updated_at: new Date().toISOString() })
@@ -295,11 +297,11 @@ export const removerAnexoOS = createServerFn({ method: "POST" })
     if (eUpd) throw new Error(eUpd.message);
 
     // Best-effort: apaga também o ficheiro do storage (não bloqueia se falhar).
-    const path = data.url.split("/anexos/")[1];
-    if (path) await supabaseAdmin.storage.from("anexos").remove([path]).catch(() => {});
+    await supabaseAdmin.storage.from("anexos").remove([data.path]);
 
     return { anexos: novosAnexos };
   });
+
 const entregaSchema = z.object({
   id: z.string().uuid(),
   assinatura_entrega: z.string().min(1, "Assinatura em falta."),
