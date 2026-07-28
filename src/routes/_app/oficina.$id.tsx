@@ -205,9 +205,10 @@ function OSDetalhePage() {
   });
 
   const removerAnexoM = useMutation({
-    mutationFn: (url: string) => removerAnexo({ data: { work_order_id: id, url } }),
+    mutationFn: (path: string) => removerAnexo({ data: { work_order_id: id, path } }),
     onSuccess: invalidate,
   });
+
 
   const entregarM = useMutation({
     mutationFn: () =>
