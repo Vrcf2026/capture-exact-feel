@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { getOS } from "@/lib/oficina.functions";
+import { getOS, STATUS_LABELS, type StatusOS, type ChecklistItem } from "@/lib/oficina.functions";
 import { getCompany } from "@/lib/admin.functions";
 import { eur, dt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ function ImprimirOSPage() {
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground p-6">A carregar…</p>;
   const { os, itens } = data;
+  const checklist = (os.checklist as ChecklistItem[] | null) ?? [];
   const total = itens.reduce(
     (s, it) => s + Math.round(Number(it.quantidade) * Number(it.preco_unitario) * 100) / 100,
     0,
@@ -48,7 +49,9 @@ function ImprimirOSPage() {
         <div className="text-right">
           <p className="text-sm font-semibold">Ordem de serviço</p>
           <p className="text-2xl font-bold">#{os.numero}</p>
-          <p className="text-xs text-black/70">{dt(os.data_rececao)}</p>
+          <p className="text-xs text-black/70">
+            {dt(os.data_rececao)} · {STATUS_LABELS[os.status as StatusOS]}
+          </p>
         </div>
       </div>
 
@@ -74,10 +77,43 @@ function ImprimirOSPage() {
         </div>
       )}
 
+      {checklist.length > 0 && (
+        <div className="text-sm">
+          <p className="font-semibold mb-1">Checklist de entrada</p>
+          <table className="w-full text-xs border-collapse">
+            <tbody>
+              {checklist.map((c) => (
+                <tr key={c.item} className="border-b border-black/10">
+                  <td className="py-1">{c.item}</td>
+                  <td className="py-1 text-center w-16">
+                    {c.status === "ok" ? "OK" : c.status === "defeito" ? "Defeito" : c.status === "na" ? "N/A" : "—"}
+                  </td>
+                  <td className="py-1 text-black/70">{c.notas}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {os.diagnostico_tecnico && (
+        <div className="text-sm">
+          <p className="font-semibold mb-1">Diagnóstico técnico</p>
+          <p className="whitespace-pre-wrap">{os.diagnostico_tecnico}</p>
+        </div>
+      )}
+
       {os.relatorio_intervencao && (
         <div className="text-sm">
           <p className="font-semibold mb-1">Relatório de intervenção</p>
           <p className="whitespace-pre-wrap">{os.relatorio_intervencao}</p>
+        </div>
+      )}
+
+      {os.observacoes_incluir_pdf && os.observacoes && (
+        <div className="text-sm">
+          <p className="font-semibold mb-1">Observações</p>
+          <p className="whitespace-pre-wrap">{os.observacoes}</p>
         </div>
       )}
 

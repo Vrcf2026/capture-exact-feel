@@ -2,12 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { criarOS, listTecnicos } from "@/lib/oficina.functions";
+import { criarOS } from "@/lib/oficina.functions";
 import { listClientes } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -25,9 +26,9 @@ export const Route = createFileRoute("/_app/oficina/nova")({
 function NovaOSPage() {
   const navigate = useNavigate();
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
-  const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos"], queryFn: () => listTecnicos() });
   const criar = useServerFn(criarOS);
 
+  const [clienteRapido, setClienteRapido] = useState(false);
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteNome, setClienteNome] = useState("");
   const [contacto, setContacto] = useState("");
@@ -36,24 +37,20 @@ function NovaOSPage() {
   const [numSerie, setNumSerie] = useState("");
   const [pin, setPin] = useState("");
   const [sintomas, setSintomas] = useState("");
-  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
-  const [valorEstimado, setValorEstimado] = useState("");
 
   const m = useMutation({
     mutationFn: () =>
       criar({
         data: {
+          cliente_rapido: clienteRapido,
           cliente_id: clienteId,
           cliente_nome: clienteNome,
           contacto: contacto || null,
-          equipamento,
+          equipamento: equipamento || null,
           marca_modelo: marcaModelo || null,
           num_serie: numSerie || null,
           password_pin: pin || null,
           sintomas_cliente: sintomas || null,
-          acessorios: [],
-          tecnico_id: tecnicoId,
-          valor_estimado: valorEstimado ? Number(valorEstimado) : null,
         },
       }),
     onSuccess: (r) => navigate({ to: "/oficina/$id", params: { id: r.id } }),
@@ -72,7 +69,12 @@ function NovaOSPage() {
     }
   }
 
-  const podeSubmeter = clienteNome.trim().length > 0 && equipamento.trim().length > 0;
+  // Mesma validação do vrcftecnica original: contacto e checklist só são
+  // obrigatórios fora de "cliente rápido"; aqui só o obrigamos à entrada.
+  const podeSubmeter =
+    clienteNome.trim().length > 0 &&
+    sintomas.trim().length > 0 &&
+    (clienteRapido || contacto.trim().length > 0);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -83,7 +85,13 @@ function NovaOSPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Cliente e equipamento</CardTitle>
+          <CardTitle className="text-base flex items-center gap-3">
+            Cliente e equipamento
+            <label className="flex items-center gap-2 text-sm font-normal text-muted-foreground cursor-pointer">
+              <Checkbox checked={clienteRapido} onCheckedChange={(v) => setClienteRapido(!!v)} />
+              Cliente rápido
+            </label>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -104,69 +112,41 @@ function NovaOSPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nome do cliente *</Label>
+              <Label>Cliente *</Label>
               <Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Contacto</Label>
+              <Label>Contacto (Tel/Email){!clienteRapido && " *"}</Label>
               <Input value={contacto} onChange={(e) => setContacto(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Equipamento *</Label>
+              <Label>Equipamento</Label>
               <Input
-                placeholder="Ex: Portátil, Desktop, Impressora…"
+                placeholder="Ex: Portátil, Desktop…"
                 value={equipamento}
                 onChange={(e) => setEquipamento(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label>Marca / modelo</Label>
+              <Label>Marca/Modelo</Label>
               <Input value={marcaModelo} onChange={(e) => setMarcaModelo(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Nº de série</Label>
+              <Label>Nº de Série</Label>
               <Input value={numSerie} onChange={(e) => setNumSerie(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Password / PIN do equipamento</Label>
+              <Label>Password/PIN</Label>
               <Input value={pin} onChange={(e) => setPin(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Sintomas descritos pelo cliente</Label>
+            <Label>Sintomas relatados pelo cliente *</Label>
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Técnico responsável</Label>
-              <Select value={tecnicoId ?? "nenhum"} onValueChange={(v) => setTecnicoId(v === "nenhum" ? null : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Por atribuir" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Por atribuir</SelectItem>
-                  {tecnicos.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Valor estimado (€)</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={valorEstimado}
-                onChange={(e) => setValorEstimado(e.target.value)}
-              />
-            </div>
           </div>
         </CardContent>
       </Card>

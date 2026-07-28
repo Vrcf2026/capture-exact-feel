@@ -1,17 +1,77 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+// ============ ESTADOS (iguais aos do vrcftecnica original) ============
 export const STATUS_OS = [
-  "rececionado",
-  "em_diagnostico",
-  "aguardar_aprovacao",
+  "recebido",
+  "diagnostico",
+  "orcamento",
   "aprovado",
+  "nao_aprovado",
   "em_reparacao",
-  "pronto",
+  "sem_reparacao",
+  "concluido",
   "entregue",
-  "cancelado",
 ] as const;
 export type StatusOS = (typeof STATUS_OS)[number];
+
+export const STATUS_LABELS: Record<StatusOS, string> = {
+  recebido: "Recebido",
+  diagnostico: "Em Diagnóstico",
+  orcamento: "Orçamento Enviado",
+  aprovado: "Aprovado",
+  nao_aprovado: "Não Aprovado",
+  em_reparacao: "Em Reparação",
+  sem_reparacao: "Sem Reparação",
+  concluido: "Concluído",
+  entregue: "Entregue",
+};
+
+// Ordem para deteção de "retrocesso" manual (trava as transições automáticas).
+export const STATUS_ORDER: StatusOS[] = [
+  "recebido", "diagnostico", "orcamento", "aprovado", "nao_aprovado",
+  "em_reparacao", "sem_reparacao", "concluido", "entregue",
+];
+
+// ============ CHECKLIST / ACESSÓRIOS (iguais ao vrcftecnica original) ============
+export const CHECK_STATUS = ["ok", "defeito", "na"] as const;
+export type CheckStatus = (typeof CHECK_STATUS)[number] | null;
+
+export interface ChecklistItem {
+  item: string;
+  status: CheckStatus;
+  notas: string;
+}
+
+export const DEFAULT_CHECKLIST: ChecklistItem[] = [
+  { item: "Arranque / Sistema", status: null, notas: "" },
+  { item: "Ecrã (Imagem/Riscos)", status: null, notas: "" },
+  { item: "Teclado / Touchpad", status: null, notas: "" },
+  { item: "Portas (USB/Carga)", status: null, notas: "" },
+  { item: "Som e Microfone", status: null, notas: "" },
+  { item: "Wi-Fi / Bluetooth", status: null, notas: "" },
+  { item: "Dobradiças / Carcaça", status: null, notas: "" },
+  { item: "Bateria", status: null, notas: "" },
+];
+
+export const ACESSORIOS_OPTIONS = ["Carregador", "Bateria", "Rato", "Bolsa"] as const;
+
+export const MEIO_APROVACAO_OPTIONS = [
+  { v: "tel", label: "Telefone" },
+  { v: "whatsapp", label: "WhatsApp" },
+  { v: "presencial", label: "Presencial" },
+  { v: "email", label: "Email" },
+] as const;
+
+const SIGNED_URL_TTL = 60 * 60; // 1 hora, igual ao vrcftecnica original
+
+interface AnexoMeta {
+  id: string;
+  nome: string;
+  tipo: string;
+  path: string; // path no bucket privado "anexos"
+  adicionadoEm: string;
+}
 
 // ============ LISTAGEM / DETALHE ============
 export const listOS = createServerFn({ method: "POST" })
@@ -26,7 +86,7 @@ export const listOS = createServerFn({ method: "POST" })
     await requireOficina();
     let query = supabaseAdmin
       .from("work_orders")
-      .select("id, numero, status, cliente_nome, equipamento, marca_modelo, data_rececao, tecnico_id, valor_estimado")
+      .select("id, numero, status, cliente_nome, equipamento, marca_modelo, data_rececao, tecnico_id, valor_estimado, prazo_estimado")
       .order("data_rececao", { ascending: false })
       .limit(200);
     if (data.status) query = query.eq("status", data.status);
@@ -54,29 +114,24 @@ export const getOS = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!os) throw new Error("Ordem de serviço não encontrada.");
+
     const { data: itens } = await supabaseAdmin
       .from("work_order_itens")
       .select("*")
       .eq("work_order_id", data.id)
       .order("id");
 
-    // Bucket privado: gerar URLs assinadas temporárias para os anexos.
-    const paths = ((os.anexos as string[] | null) ?? []).map((a) =>
-      a.includes("/anexos/") ? a.split("/anexos/")[1].split("?")[0] : a,
+    // Gera URLs assinadas (1h) para cada anexo, para o bucket privado.
+    const anexos = ((os.anexos as AnexoMeta[] | null) ?? []) as AnexoMeta[];
+    const anexosComUrl = await Promise.all(
+      anexos.map(async (a) => {
+        const { data: signed } = await supabaseAdmin.storage.from("anexos").createSignedUrl(a.path, SIGNED_URL_TTL);
+        return { ...a, url: signed?.signedUrl ?? null };
+      }),
     );
-    let anexos_urls: { path: string; url: string }[] = [];
-    if (paths.length) {
-      const { data: signed } = await supabaseAdmin.storage
-        .from("anexos")
-        .createSignedUrls(paths, 60 * 60);
-      anexos_urls = (signed ?? [])
-        .map((s, i) => ({ path: paths[i], url: s.signedUrl ?? "" }))
-        .filter((s) => s.url);
-    }
 
-    return { os, itens: itens ?? [], anexos_urls };
+    return { os, itens: itens ?? [], anexos: anexosComUrl };
   });
-
 
 export const listTecnicos = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOficina } = await import("./auth.server");
@@ -92,60 +147,59 @@ export const listTecnicos = createServerFn({ method: "GET" }).handler(async () =
 });
 
 // ============ CRIAR / ATUALIZAR ============
-const criarSchema = z.object({
+const checklistItemSchema = z.object({
+  item: z.string(),
+  status: z.enum(["ok", "defeito", "na"]).nullable(),
+  notas: z.string(),
+});
+
+const camposComuns = {
+  cliente_rapido: z.boolean().optional(),
   cliente_id: z.string().uuid().optional().nullable(),
   cliente_nome: z.string().trim().min(1).max(200),
   contacto: z.string().trim().optional().nullable(),
-  equipamento: z.string().trim().min(1).max(200),
+  equipamento: z.string().trim().optional().nullable(),
   marca_modelo: z.string().trim().optional().nullable(),
   num_serie: z.string().trim().optional().nullable(),
   password_pin: z.string().trim().optional().nullable(),
+  checklist: z.array(checklistItemSchema).optional(),
+  acessorios: z.array(z.string()).optional(),
   sintomas_cliente: z.string().trim().optional().nullable(),
-  acessorios: z.array(z.string()).default([]),
   tecnico_id: z.string().uuid().optional().nullable(),
+  diagnostico_tecnico: z.string().trim().optional().nullable(),
   valor_estimado: z.number().min(0).optional().nullable(),
-});
+  aprovado_por: z.string().trim().optional().nullable(),
+  meio_aprovacao: z.string().trim().optional().nullable(),
+  data_aprovacao: z.string().optional().nullable(),
+  prazo_estimado: z.string().optional().nullable(),
+  relatorio_intervencao: z.string().trim().optional().nullable(),
+  observacoes: z.string().trim().optional().nullable(),
+  observacoes_incluir_pdf: z.boolean().optional(),
+  assinatura_rececao: z.string().optional().nullable(),
+};
 
 export const criarOS = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => criarSchema.parse(d))
+  .inputValidator((d: unknown) => z.object({ ...camposComuns }).parse(d))
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireOficina();
     const { data: os, error } = await supabaseAdmin
       .from("work_orders")
-      .insert({ ...data, status: "rececionado" })
+      .insert({ ...data, status: "recebido", checklist: (data.checklist ?? DEFAULT_CHECKLIST) as unknown as never })
       .select("id, numero")
       .single();
     if (error || !os) throw new Error(error?.message ?? "Erro ao criar ordem de serviço.");
     return os;
   });
 
-const atualizarSchema = z.object({
-  id: z.string().uuid(),
-  cliente_nome: z.string().trim().min(1).max(200).optional(),
-  contacto: z.string().trim().optional().nullable(),
-  equipamento: z.string().trim().min(1).max(200).optional(),
-  marca_modelo: z.string().trim().optional().nullable(),
-  num_serie: z.string().trim().optional().nullable(),
-  password_pin: z.string().trim().optional().nullable(),
-  sintomas_cliente: z.string().trim().optional().nullable(),
-  acessorios: z.array(z.string()).optional(),
-  checklist: z.record(z.boolean()).optional(),
-  tecnico_id: z.string().uuid().optional().nullable(),
-  valor_estimado: z.number().min(0).optional().nullable(),
-  relatorio_intervencao: z.string().trim().optional().nullable(),
-  aprovado_por: z.string().trim().optional().nullable(),
-  meio_aprovacao: z.string().trim().optional().nullable(),
-  assinatura_rececao: z.string().optional().nullable(),
-  assinatura_entrega: z.string().optional().nullable(),
-  limpeza_efetuada: z.boolean().optional(),
-  testes_finais_ok: z.boolean().optional(),
-  anexos: z.array(z.string()).optional(),
-});
-
 export const atualizarOS = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => atualizarSchema.parse(d))
+  .inputValidator((d: unknown) =>
+    z
+      .object({ id: z.string().uuid(), auto_status_locked: z.boolean().optional(), ...camposComuns })
+      .partial({ cliente_nome: true })
+      .parse(d),
+  )
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -159,25 +213,29 @@ export const atualizarOS = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Aplica as mesmas transições automáticas de estado do vrcftecnica original,
+// a não ser que auto_status_locked esteja ativo (o utilizador já recuou o estado à mão).
 export const mudarStatusOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), status: z.enum(STATUS_OS) }).parse(d),
+    z.object({ id: z.string().uuid(), status: z.enum(STATUS_OS), auto_status_locked: z.boolean() }).parse(d),
   )
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireOficina();
-    const extra: { status: StatusOS; updated_at: string; data_aprovacao?: string } = {
-      status: data.status,
-      updated_at: new Date().toISOString(),
-    };
-    if (data.status === "aprovado") extra.data_aprovacao = new Date().toISOString();
-    const { error } = await supabaseAdmin.from("work_orders").update(extra).eq("id", data.id);
+    const { error } = await supabaseAdmin
+      .from("work_orders")
+      .update({
+        status: data.status,
+        auto_status_locked: data.auto_status_locked,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
-// ============ ITENS (ORÇAMENTO) ============
+// ============ ITENS (ORÇAMENTO — ligado ao catálogo partilhado com a Loja) ============
 const itemSchema = z.object({
   work_order_id: z.string().uuid(),
   catalogo_id: z.string().uuid().optional().nullable(),
@@ -208,28 +266,11 @@ export const removerItemOS = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// ============ ASSINATURA NA RECEÇÃO ============
-export const assinarRececao = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) =>
-    z.object({ id: z.string().uuid(), assinatura_rececao: z.string().min(1) }).parse(d),
-  )
-  .handler(async ({ data }) => {
-    const { requireOficina } = await import("./auth.server");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireOficina();
-    const { error } = await supabaseAdmin
-      .from("work_orders")
-      .update({ assinatura_rececao: data.assinatura_rececao, updated_at: new Date().toISOString() })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-// ============ ANEXOS / FOTOS ============
+// ============ ANEXOS / FOTOS (bucket privado, como no vrcftecnica original) ============
 const uploadSchema = z.object({
   work_order_id: z.string().uuid(),
   nome_ficheiro: z.string().trim().min(1),
-  data_url: z.string().min(1), // "data:image/jpeg;base64,...."
+  data_url: z.string().min(1),
 });
 
 export const uploadAnexoOS = createServerFn({ method: "POST" })
@@ -237,7 +278,7 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireOficina();
+    const u = await requireOficina();
 
     const match = data.data_url.match(/^data:(.+);base64,(.+)$/);
     if (!match) throw new Error("Ficheiro inválido.");
@@ -245,7 +286,8 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
     const bytes = Buffer.from(base64, "base64");
     if (bytes.byteLength > 8 * 1024 * 1024) throw new Error("Ficheiro demasiado grande (máx. 8MB).");
 
-    const path = `${data.work_order_id}/${Date.now()}-${data.nome_ficheiro.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const fileId = crypto.randomUUID();
+    const path = `${u.id}/${fileId}`;
     const { error: eUp } = await supabaseAdmin.storage.from("anexos").upload(path, bytes, {
       contentType: mime,
       upsert: false,
@@ -259,20 +301,26 @@ export const uploadAnexoOS = createServerFn({ method: "POST" })
       .maybeSingle();
     if (eOs || !os) throw new Error(eOs?.message ?? "Ordem de serviço não encontrada.");
 
-    // Guardamos apenas o caminho no bucket (privado); o acesso é por URL assinada.
-    const anexosAtuais = (os.anexos as string[] | null) ?? [];
-    const novosAnexos = [...anexosAtuais, path];
+    const novoAnexo: AnexoMeta = {
+      id: fileId,
+      nome: data.nome_ficheiro,
+      tipo: mime,
+      path,
+      adicionadoEm: new Date().toISOString(),
+    };
+    const anexosAtuais = ((os.anexos as AnexoMeta[] | null) ?? []) as AnexoMeta[];
+    const novosAnexos = [...anexosAtuais, novoAnexo];
     const { error: eUpd } = await supabaseAdmin
       .from("work_orders")
-      .update({ anexos: novosAnexos, updated_at: new Date().toISOString() })
+      .update({ anexos: novosAnexos as unknown as never, updated_at: new Date().toISOString() })
       .eq("id", data.work_order_id);
     if (eUpd) throw new Error(eUpd.message);
 
-    return { anexos: novosAnexos };
+    return { ok: true };
   });
 
 export const removerAnexoOS = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ work_order_id: z.string().uuid(), path: z.string() }).parse(d))
+  .inputValidator((d: unknown) => z.object({ work_order_id: z.string().uuid(), anexo_id: z.string() }).parse(d))
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -285,28 +333,26 @@ export const removerAnexoOS = createServerFn({ method: "POST" })
       .maybeSingle();
     if (eOs || !os) throw new Error(eOs?.message ?? "Ordem de serviço não encontrada.");
 
-    const anexosAtuais = (os.anexos as string[] | null) ?? [];
-    const novosAnexos = anexosAtuais.filter((a) => {
-      const p = a.includes("/anexos/") ? a.split("/anexos/")[1].split("?")[0] : a;
-      return p !== data.path;
-    });
+    const anexosAtuais = ((os.anexos as AnexoMeta[] | null) ?? []) as AnexoMeta[];
+    const alvo = anexosAtuais.find((a) => a.id === data.anexo_id);
+    const novosAnexos = anexosAtuais.filter((a) => a.id !== data.anexo_id);
     const { error: eUpd } = await supabaseAdmin
       .from("work_orders")
-      .update({ anexos: novosAnexos, updated_at: new Date().toISOString() })
+      .update({ anexos: novosAnexos as unknown as never, updated_at: new Date().toISOString() })
       .eq("id", data.work_order_id);
     if (eUpd) throw new Error(eUpd.message);
 
-    // Best-effort: apaga também o ficheiro do storage (não bloqueia se falhar).
-    await supabaseAdmin.storage.from("anexos").remove([data.path]);
-
-    return { anexos: novosAnexos };
+    if (alvo) await supabaseAdmin.storage.from("anexos").remove([alvo.path]).catch(() => {});
+    return { ok: true };
   });
 
+// ============ ENTREGA (gera venda na Loja — ligação nova, mantida) ============
 const entregaSchema = z.object({
   id: z.string().uuid(),
   assinatura_entrega: z.string().min(1, "Assinatura em falta."),
   limpeza_efetuada: z.boolean(),
   testes_finais_ok: z.boolean(),
+  valor_total_pago: z.number().min(0).optional().nullable(),
   metodo_pagamento: z.enum(["dinheiro", "mb", "transferencia", "conta_corrente", "cheque", "outro"]),
 });
 
@@ -335,7 +381,6 @@ export const entregarOS = createServerFn({ method: "POST" })
       0,
     );
 
-    // Cria o registo de venda na Loja, associado ao técnico que entregou.
     let registoId: string | null = null;
     if ((itens ?? []).length > 0 && total > 0) {
       const { data: reg, error: eReg } = await supabaseAdmin
@@ -381,11 +426,54 @@ export const entregarOS = createServerFn({ method: "POST" })
         limpeza_efetuada: data.limpeza_efetuada,
         testes_finais_ok: data.testes_finais_ok,
         data_entrega: new Date().toISOString(),
-        valor_total_pago: total,
+        valor_total_pago: data.valor_total_pago ?? total,
         updated_at: new Date().toISOString(),
       })
       .eq("id", data.id);
     if (eUpd) throw new Error(eUpd.message);
 
     return { ok: true, registo_id: registoId, total };
+  });
+
+// ============ RELATÓRIOS DA OFICINA ============
+const relatorioSchema = z.object({ inicio: z.string(), fim: z.string() });
+
+export const relatorioOficina = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => relatorioSchema.parse(d))
+  .handler(async ({ data }) => {
+    const { requireOficina } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireOficina();
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("work_orders")
+      .select("id, numero, status, cliente_nome, tecnico_id, data_rececao, data_entrega, valor_total_pago, valor_estimado")
+      .gte("data_rececao", data.inicio)
+      .lte("data_rececao", data.fim + "T23:59:59");
+    if (error) throw new Error(error.message);
+
+    const porEstado: Record<string, number> = {};
+    let totalFaturado = 0;
+    let somaDias = 0;
+    let contDias = 0;
+
+    for (const r of rows ?? []) {
+      porEstado[r.status] = (porEstado[r.status] ?? 0) + 1;
+      if (r.status === "entregue") {
+        totalFaturado += Number(r.valor_total_pago ?? 0);
+        if (r.data_entrega && r.data_rececao) {
+          const dias = (new Date(r.data_entrega).getTime() - new Date(r.data_rececao).getTime()) / 86_400_000;
+          somaDias += dias;
+          contDias += 1;
+        }
+      }
+    }
+
+    return {
+      total_os: (rows ?? []).length,
+      por_estado: porEstado,
+      total_faturado: totalFaturado,
+      tempo_medio_dias: contDias > 0 ? Math.round((somaDias / contDias) * 10) / 10 : null,
+      ordens: rows ?? [],
+    };
   });
