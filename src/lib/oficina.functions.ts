@@ -59,8 +59,24 @@ export const getOS = createServerFn({ method: "POST" })
       .select("*")
       .eq("work_order_id", data.id)
       .order("id");
-    return { os, itens: itens ?? [] };
+
+    // Bucket privado: gerar URLs assinadas temporárias para os anexos.
+    const paths = ((os.anexos as string[] | null) ?? []).map((a) =>
+      a.includes("/anexos/") ? a.split("/anexos/")[1].split("?")[0] : a,
+    );
+    let anexos_urls: { path: string; url: string }[] = [];
+    if (paths.length) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from("anexos")
+        .createSignedUrls(paths, 60 * 60);
+      anexos_urls = (signed ?? [])
+        .map((s, i) => ({ path: paths[i], url: s.signedUrl ?? "" }))
+        .filter((s) => s.url);
+    }
+
+    return { os, itens: itens ?? [], anexos_urls };
   });
+
 
 export const listTecnicos = createServerFn({ method: "GET" }).handler(async () => {
   const { requireOficina } = await import("./auth.server");
