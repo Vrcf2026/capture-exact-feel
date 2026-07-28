@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2, Printer, Upload, X } from "lucide-react";
 
-export const Route = createFileRoute("/_app/oficina/$id")({
+export const Route = createFileRoute("/_app/oficina/$id/")({
   head: () => ({ meta: [{ title: "Ordem de serviço — VRCF" }] }),
   component: OSDetalhePage,
 });

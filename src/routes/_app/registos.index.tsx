@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 
-export const Route = createFileRoute("/_app/registos")({
+export const Route = createFileRoute("/_app/registos/")({
   head: () => ({
     meta: [
       { title: "Registos — VRCF" },

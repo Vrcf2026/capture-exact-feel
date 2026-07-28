@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Wrench } from "lucide-react";
 
-export const Route = createFileRoute("/_app/oficina")({
+export const Route = createFileRoute("/_app/oficina/")({
   head: () => ({
     meta: [
       { title: "Oficina — VRCF" },

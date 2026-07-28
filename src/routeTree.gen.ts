@@ -16,17 +16,17 @@ import { Route as AppVendedoresRouteImport } from './routes/_app/vendedores'
 import { Route as AppVendasRouteImport } from './routes/_app/vendas'
 import { Route as AppUtilizadoresRouteImport } from './routes/_app/utilizadores'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
-import { Route as AppRegistosRouteImport } from './routes/_app/registos'
-import { Route as AppOficinaRouteImport } from './routes/_app/oficina'
 import { Route as AppEmpresaRouteImport } from './routes/_app/empresa'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppContaCorrenteRouteImport } from './routes/_app/conta-corrente'
 import { Route as AppClientesRouteImport } from './routes/_app/clientes'
 import { Route as AppCatalogoRouteImport } from './routes/_app/catalogo'
 import { Route as AppCaixaRouteImport } from './routes/_app/caixa'
+import { Route as AppRegistosIndexRouteImport } from './routes/_app/registos.index'
+import { Route as AppOficinaIndexRouteImport } from './routes/_app/oficina.index'
 import { Route as AppRegistosIdRouteImport } from './routes/_app/registos.$id'
 import { Route as AppOficinaNovaRouteImport } from './routes/_app/oficina.nova'
-import { Route as AppOficinaIdRouteImport } from './routes/_app/oficina.$id'
+import { Route as AppOficinaIdIndexRouteImport } from './routes/_app/oficina.$id.index'
 import { Route as AppOficinaIdImprimirRouteImport } from './routes/_app/oficina.$id.imprimir'
 
 const LoginRoute = LoginRouteImport.update({
@@ -63,16 +63,6 @@ const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
   path: '/relatorios',
   getParentRoute: () => AppRoute,
 } as any)
-const AppRegistosRoute = AppRegistosRouteImport.update({
-  id: '/registos',
-  path: '/registos',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppOficinaRoute = AppOficinaRouteImport.update({
-  id: '/oficina',
-  path: '/oficina',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppEmpresaRoute = AppEmpresaRouteImport.update({
   id: '/empresa',
   path: '/empresa',
@@ -103,25 +93,35 @@ const AppCaixaRoute = AppCaixaRouteImport.update({
   path: '/caixa',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRegistosIndexRoute = AppRegistosIndexRouteImport.update({
+  id: '/registos/',
+  path: '/registos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOficinaIndexRoute = AppOficinaIndexRouteImport.update({
+  id: '/oficina/',
+  path: '/oficina/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRegistosIdRoute = AppRegistosIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppRegistosRoute,
+  id: '/registos/$id',
+  path: '/registos/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppOficinaNovaRoute = AppOficinaNovaRouteImport.update({
-  id: '/nova',
-  path: '/nova',
-  getParentRoute: () => AppOficinaRoute,
+  id: '/oficina/nova',
+  path: '/oficina/nova',
+  getParentRoute: () => AppRoute,
 } as any)
-const AppOficinaIdRoute = AppOficinaIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppOficinaRoute,
+const AppOficinaIdIndexRoute = AppOficinaIdIndexRouteImport.update({
+  id: '/oficina/$id/',
+  path: '/oficina/$id/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppOficinaIdImprimirRoute = AppOficinaIdImprimirRouteImport.update({
-  id: '/imprimir',
-  path: '/imprimir',
-  getParentRoute: () => AppOficinaIdRoute,
+  id: '/oficina/$id/imprimir',
+  path: '/oficina/$id/imprimir',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -133,16 +133,16 @@ export interface FileRoutesByFullPath {
   '/conta-corrente': typeof AppContaCorrenteRoute
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
-  '/oficina': typeof AppOficinaRouteWithChildren
-  '/registos': typeof AppRegistosRouteWithChildren
   '/relatorios': typeof AppRelatoriosRoute
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
-  '/oficina/$id': typeof AppOficinaIdRouteWithChildren
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/oficina/': typeof AppOficinaIndexRoute
+  '/registos/': typeof AppRegistosIndexRoute
   '/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
+  '/oficina/$id/': typeof AppOficinaIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -153,16 +153,16 @@ export interface FileRoutesByTo {
   '/conta-corrente': typeof AppContaCorrenteRoute
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
-  '/oficina': typeof AppOficinaRouteWithChildren
-  '/registos': typeof AppRegistosRouteWithChildren
   '/relatorios': typeof AppRelatoriosRoute
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
-  '/oficina/$id': typeof AppOficinaIdRouteWithChildren
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/oficina': typeof AppOficinaIndexRoute
+  '/registos': typeof AppRegistosIndexRoute
   '/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
+  '/oficina/$id': typeof AppOficinaIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,16 +175,16 @@ export interface FileRoutesById {
   '/_app/conta-corrente': typeof AppContaCorrenteRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/empresa': typeof AppEmpresaRoute
-  '/_app/oficina': typeof AppOficinaRouteWithChildren
-  '/_app/registos': typeof AppRegistosRouteWithChildren
   '/_app/relatorios': typeof AppRelatoriosRoute
   '/_app/utilizadores': typeof AppUtilizadoresRoute
   '/_app/vendas': typeof AppVendasRoute
   '/_app/vendedores': typeof AppVendedoresRoute
-  '/_app/oficina/$id': typeof AppOficinaIdRouteWithChildren
   '/_app/oficina/nova': typeof AppOficinaNovaRoute
   '/_app/registos/$id': typeof AppRegistosIdRoute
+  '/_app/oficina/': typeof AppOficinaIndexRoute
+  '/_app/registos/': typeof AppRegistosIndexRoute
   '/_app/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
+  '/_app/oficina/$id/': typeof AppOficinaIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,16 +197,16 @@ export interface FileRouteTypes {
     | '/conta-corrente'
     | '/dashboard'
     | '/empresa'
-    | '/oficina'
-    | '/registos'
     | '/relatorios'
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
-    | '/oficina/$id'
     | '/oficina/nova'
     | '/registos/$id'
+    | '/oficina/'
+    | '/registos/'
     | '/oficina/$id/imprimir'
+    | '/oficina/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -217,16 +217,16 @@ export interface FileRouteTypes {
     | '/conta-corrente'
     | '/dashboard'
     | '/empresa'
-    | '/oficina'
-    | '/registos'
     | '/relatorios'
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
-    | '/oficina/$id'
     | '/oficina/nova'
     | '/registos/$id'
+    | '/oficina'
+    | '/registos'
     | '/oficina/$id/imprimir'
+    | '/oficina/$id'
   id:
     | '__root__'
     | '/'
@@ -238,16 +238,16 @@ export interface FileRouteTypes {
     | '/_app/conta-corrente'
     | '/_app/dashboard'
     | '/_app/empresa'
-    | '/_app/oficina'
-    | '/_app/registos'
     | '/_app/relatorios'
     | '/_app/utilizadores'
     | '/_app/vendas'
     | '/_app/vendedores'
-    | '/_app/oficina/$id'
     | '/_app/oficina/nova'
     | '/_app/registos/$id'
+    | '/_app/oficina/'
+    | '/_app/registos/'
     | '/_app/oficina/$id/imprimir'
+    | '/_app/oficina/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -307,20 +307,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRelatoriosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/registos': {
-      id: '/_app/registos'
-      path: '/registos'
-      fullPath: '/registos'
-      preLoaderRoute: typeof AppRegistosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/oficina': {
-      id: '/_app/oficina'
-      path: '/oficina'
-      fullPath: '/oficina'
-      preLoaderRoute: typeof AppOficinaRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/empresa': {
       id: '/_app/empresa'
       path: '/empresa'
@@ -363,74 +349,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCaixaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/registos/': {
+      id: '/_app/registos/'
+      path: '/registos'
+      fullPath: '/registos/'
+      preLoaderRoute: typeof AppRegistosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/oficina/': {
+      id: '/_app/oficina/'
+      path: '/oficina'
+      fullPath: '/oficina/'
+      preLoaderRoute: typeof AppOficinaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/registos/$id': {
       id: '/_app/registos/$id'
-      path: '/$id'
+      path: '/registos/$id'
       fullPath: '/registos/$id'
       preLoaderRoute: typeof AppRegistosIdRouteImport
-      parentRoute: typeof AppRegistosRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/oficina/nova': {
       id: '/_app/oficina/nova'
-      path: '/nova'
+      path: '/oficina/nova'
       fullPath: '/oficina/nova'
       preLoaderRoute: typeof AppOficinaNovaRouteImport
-      parentRoute: typeof AppOficinaRoute
+      parentRoute: typeof AppRoute
     }
-    '/_app/oficina/$id': {
-      id: '/_app/oficina/$id'
-      path: '/$id'
-      fullPath: '/oficina/$id'
-      preLoaderRoute: typeof AppOficinaIdRouteImport
-      parentRoute: typeof AppOficinaRoute
+    '/_app/oficina/$id/': {
+      id: '/_app/oficina/$id/'
+      path: '/oficina/$id'
+      fullPath: '/oficina/$id/'
+      preLoaderRoute: typeof AppOficinaIdIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/oficina/$id/imprimir': {
       id: '/_app/oficina/$id/imprimir'
-      path: '/imprimir'
+      path: '/oficina/$id/imprimir'
       fullPath: '/oficina/$id/imprimir'
       preLoaderRoute: typeof AppOficinaIdImprimirRouteImport
-      parentRoute: typeof AppOficinaIdRoute
+      parentRoute: typeof AppRoute
     }
   }
 }
-
-interface AppOficinaIdRouteChildren {
-  AppOficinaIdImprimirRoute: typeof AppOficinaIdImprimirRoute
-}
-
-const AppOficinaIdRouteChildren: AppOficinaIdRouteChildren = {
-  AppOficinaIdImprimirRoute: AppOficinaIdImprimirRoute,
-}
-
-const AppOficinaIdRouteWithChildren = AppOficinaIdRoute._addFileChildren(
-  AppOficinaIdRouteChildren,
-)
-
-interface AppOficinaRouteChildren {
-  AppOficinaIdRoute: typeof AppOficinaIdRouteWithChildren
-  AppOficinaNovaRoute: typeof AppOficinaNovaRoute
-}
-
-const AppOficinaRouteChildren: AppOficinaRouteChildren = {
-  AppOficinaIdRoute: AppOficinaIdRouteWithChildren,
-  AppOficinaNovaRoute: AppOficinaNovaRoute,
-}
-
-const AppOficinaRouteWithChildren = AppOficinaRoute._addFileChildren(
-  AppOficinaRouteChildren,
-)
-
-interface AppRegistosRouteChildren {
-  AppRegistosIdRoute: typeof AppRegistosIdRoute
-}
-
-const AppRegistosRouteChildren: AppRegistosRouteChildren = {
-  AppRegistosIdRoute: AppRegistosIdRoute,
-}
-
-const AppRegistosRouteWithChildren = AppRegistosRoute._addFileChildren(
-  AppRegistosRouteChildren,
-)
 
 interface AppRouteChildren {
   AppCaixaRoute: typeof AppCaixaRoute
@@ -439,12 +401,16 @@ interface AppRouteChildren {
   AppContaCorrenteRoute: typeof AppContaCorrenteRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmpresaRoute: typeof AppEmpresaRoute
-  AppOficinaRoute: typeof AppOficinaRouteWithChildren
-  AppRegistosRoute: typeof AppRegistosRouteWithChildren
   AppRelatoriosRoute: typeof AppRelatoriosRoute
   AppUtilizadoresRoute: typeof AppUtilizadoresRoute
   AppVendasRoute: typeof AppVendasRoute
   AppVendedoresRoute: typeof AppVendedoresRoute
+  AppOficinaNovaRoute: typeof AppOficinaNovaRoute
+  AppRegistosIdRoute: typeof AppRegistosIdRoute
+  AppOficinaIndexRoute: typeof AppOficinaIndexRoute
+  AppRegistosIndexRoute: typeof AppRegistosIndexRoute
+  AppOficinaIdImprimirRoute: typeof AppOficinaIdImprimirRoute
+  AppOficinaIdIndexRoute: typeof AppOficinaIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -454,12 +420,16 @@ const AppRouteChildren: AppRouteChildren = {
   AppContaCorrenteRoute: AppContaCorrenteRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmpresaRoute: AppEmpresaRoute,
-  AppOficinaRoute: AppOficinaRouteWithChildren,
-  AppRegistosRoute: AppRegistosRouteWithChildren,
   AppRelatoriosRoute: AppRelatoriosRoute,
   AppUtilizadoresRoute: AppUtilizadoresRoute,
   AppVendasRoute: AppVendasRoute,
   AppVendedoresRoute: AppVendedoresRoute,
+  AppOficinaNovaRoute: AppOficinaNovaRoute,
+  AppRegistosIdRoute: AppRegistosIdRoute,
+  AppOficinaIndexRoute: AppOficinaIndexRoute,
+  AppRegistosIndexRoute: AppRegistosIndexRoute,
+  AppOficinaIdImprimirRoute: AppOficinaIdImprimirRoute,
+  AppOficinaIdIndexRoute: AppOficinaIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
