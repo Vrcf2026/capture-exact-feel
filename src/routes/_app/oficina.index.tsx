@@ -1,18 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { listOS, STATUS_OS, STATUS_LABELS, type StatusOS } from "@/lib/oficina.functions";
+import { listOS, eliminarOS, STATUS_OS, STATUS_LABELS, type StatusOS } from "@/lib/oficina.functions";
+import { Route as AppRoute } from "@/routes/_app";
 import { StatusBadgeOS } from "@/components/StatusBadgeOS";
 import { eur, d } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -21,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Wrench, BarChart3 } from "lucide-react";
+import { Plus, Wrench, BarChart3, Filter, Trash2, Archive } from "lucide-react";
 
 export const Route = createFileRoute("/_app/oficina/")({
   head: () => ({
@@ -33,13 +31,41 @@ export const Route = createFileRoute("/_app/oficina/")({
   component: OficinaPage,
 });
 
+const DEFAULT_FILTER_STATUSES: StatusOS[] = [
+  "recebido", "diagnostico", "orcamento", "aprovado", "em_reparacao", "concluido",
+];
+
 function OficinaPage() {
-  const [status, setStatus] = useState<StatusOS | "todos">("todos");
+  const qc = useQueryClient();
+  const { currentUser } = AppRoute.useRouteContext();
+  const isAdmin = currentUser.papel === "admin";
   const [q, setQ] = useState("");
+  const [filterStatuses, setFilterStatuses] = useState<StatusOS[]>(DEFAULT_FILTER_STATUSES);
+  const eliminar = useServerFn(eliminarOS);
+
+  // Sem filtro de estado quando há texto de pesquisa (procura em todos os estados).
   const { data: os = [], isLoading } = useQuery({
-    queryKey: ["os", status, q],
-    queryFn: () => listOS({ data: { status: status === "todos" ? null : status, q } }),
+    queryKey: ["os-lista", q],
+    queryFn: () => listOS({ data: { status: null, q } }),
   });
+
+  const eliminarM = useMutation({
+    mutationFn: (id: string) => eliminar({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["os-lista"] }),
+  });
+
+  const visiveis = q.trim() ? os : os.filter((o) => filterStatuses.includes(o.status as StatusOS));
+
+  const stats = {
+    total: os.length,
+    abertos: os.filter((o) => !["concluido", "entregue"].includes(o.status)).length,
+    concluidos: os.filter((o) => o.status === "concluido").length,
+    entregues: os.filter((o) => o.status === "entregue").length,
+  };
+
+  function toggleStatus(s: StatusOS) {
+    setFilterStatuses((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  }
 
   return (
     <div className="space-y-6">
@@ -49,6 +75,13 @@ function OficinaPage() {
           <p className="text-sm text-muted-foreground">Receção, diagnóstico, reparação e entrega.</p>
         </div>
         <div className="flex gap-2">
+          {isAdmin && (
+            <Button variant="outline" asChild>
+              <Link to="/oficina/admin">
+                <Archive className="h-4 w-4 mr-1" /> Admin
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" asChild>
             <Link to="/oficina/relatorios">
               <BarChart3 className="h-4 w-4 mr-1" /> Relatórios
@@ -62,6 +95,22 @@ function OficinaPage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total", value: stats.total },
+          { label: "Em aberto", value: stats.abertos },
+          { label: "Concluídos", value: stats.concluidos },
+          { label: "Entregues", value: stats.entregues },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold font-mono">{s.value}</div>
+              <div className="text-xs text-muted-foreground">{s.label}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <Input
           placeholder="Procurar por cliente, equipamento, nº série…"
@@ -69,19 +118,44 @@ function OficinaPage() {
           onChange={(e) => setQ(e.target.value)}
           className="max-w-xs"
         />
-        <Select value={status} onValueChange={(v) => setStatus(v as StatusOS | "todos")}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os estados</SelectItem>
-            {STATUS_OS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Filter className="h-4 w-4" />
+              Estados
+              {filterStatuses.length < STATUS_OS.length && (
+                <span className="bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5 ml-1">
+                  {filterStatuses.length}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-3" align="start">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Filtrar estados</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto py-0.5 px-1.5 text-xs"
+                  onClick={() =>
+                    setFilterStatuses(
+                      filterStatuses.length === STATUS_OS.length ? DEFAULT_FILTER_STATUSES : [...STATUS_OS],
+                    )
+                  }
+                >
+                  {filterStatuses.length === STATUS_OS.length ? "Predefinidos" : "Todos"}
+                </Button>
+              </div>
+              {STATUS_OS.map((s) => (
+                <label key={s} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox checked={filterStatuses.includes(s)} onCheckedChange={() => toggleStatus(s)} />
+                  <span className="text-sm">{STATUS_LABELS[s]}</span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="rounded-md border border-border">
@@ -94,19 +168,20 @@ function OficinaPage() {
               <TableHead>Receção</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Estimado</TableHead>
+              {isAdmin && <TableHead className="w-10" />}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!isLoading && os.length === 0 && (
+            {!isLoading && visiveis.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-10">
                   <Wrench className="h-6 w-6 mx-auto mb-2 opacity-50" />
                   Nenhuma ordem de serviço encontrada.
                 </TableCell>
               </TableRow>
             )}
-            {os.map((o) => (
-              <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50">
+            {visiveis.map((o) => (
+              <TableRow key={o.id} className="hover:bg-muted/50">
                 <TableCell>
                   <Link to="/oficina/$id" params={{ id: o.id }} className="font-mono text-xs">
                     #{o.numero}
@@ -127,6 +202,19 @@ function OficinaPage() {
                 <TableCell className="text-right">
                   {o.valor_estimado ? eur(o.valor_estimado) : "—"}
                 </TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (window.confirm(`Eliminar a OS #${o.numero}?`)) eliminarM.mutate(o.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

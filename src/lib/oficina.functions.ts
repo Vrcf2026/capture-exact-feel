@@ -435,6 +435,46 @@ export const entregarOS = createServerFn({ method: "POST" })
     return { ok: true, registo_id: registoId, total };
   });
 
+// ============ ADMIN: ELIMINAR / ARQUIVAR ANTIGAS ============
+export const eliminarOS = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireOficina } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const u = await requireOficina();
+    if (u.papel !== "admin") throw new Error("Só o administrador pode eliminar ordens de serviço.");
+    const { error } = await supabaseAdmin.from("work_orders").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listOSAntesDe = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ data_limite: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireOficina } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const u = await requireOficina();
+    if (u.papel !== "admin") throw new Error("Só o administrador pode ver esta lista.");
+    const { data: rows, error } = await supabaseAdmin
+      .from("work_orders")
+      .select("id, numero, cliente_nome, created_at")
+      .lt("created_at", data.data_limite);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const purgarOSAntesDe = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ data_limite: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireOficina } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const u = await requireOficina();
+    if (u.papel !== "admin") throw new Error("Só o administrador pode arquivar/apagar ordens de serviço.");
+    const { error } = await supabaseAdmin.from("work_orders").delete().lt("created_at", data.data_limite);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ============ RELATÓRIOS DA OFICINA ============
 const relatorioSchema = z.object({ inicio: z.string(), fim: z.string() });
 
