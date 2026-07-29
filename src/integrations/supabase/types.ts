@@ -505,17 +505,14 @@ export type Database = {
           aprovado_por: string | null
           assinatura_entrega: string | null
           assinatura_rececao: string | null
-          auto_status_locked: boolean
           checklist: Json
           cliente_id: string | null
           cliente_nome: string | null
-          cliente_rapido: boolean
           contacto: string | null
           created_at: string
           data_aprovacao: string | null
           data_entrega: string | null
           data_rececao: string
-          diagnostico_tecnico: string | null
           equipamento: string | null
           id: string
           limpeza_efetuada: boolean
@@ -523,10 +520,7 @@ export type Database = {
           meio_aprovacao: string | null
           num_serie: string | null
           numero: number
-          observacoes: string | null
-          observacoes_incluir_pdf: boolean
           password_pin: string | null
-          prazo_estimado: string | null
           relatorio_intervencao: string | null
           sintomas_cliente: string | null
           status: string
@@ -542,17 +536,14 @@ export type Database = {
           aprovado_por?: string | null
           assinatura_entrega?: string | null
           assinatura_rececao?: string | null
-          auto_status_locked?: boolean
           checklist?: Json
           cliente_id?: string | null
           cliente_nome?: string | null
-          cliente_rapido?: boolean
           contacto?: string | null
           created_at?: string
           data_aprovacao?: string | null
           data_entrega?: string | null
           data_rececao?: string
-          diagnostico_tecnico?: string | null
           equipamento?: string | null
           id?: string
           limpeza_efetuada?: boolean
@@ -560,10 +551,7 @@ export type Database = {
           meio_aprovacao?: string | null
           num_serie?: string | null
           numero?: number
-          observacoes?: string | null
-          observacoes_incluir_pdf?: boolean
           password_pin?: string | null
-          prazo_estimado?: string | null
           relatorio_intervencao?: string | null
           sintomas_cliente?: string | null
           status?: string
@@ -579,17 +567,14 @@ export type Database = {
           aprovado_por?: string | null
           assinatura_entrega?: string | null
           assinatura_rececao?: string | null
-          auto_status_locked?: boolean
           checklist?: Json
           cliente_id?: string | null
           cliente_nome?: string | null
-          cliente_rapido?: boolean
           contacto?: string | null
           created_at?: string
           data_aprovacao?: string | null
           data_entrega?: string | null
           data_rececao?: string
-          diagnostico_tecnico?: string | null
           equipamento?: string | null
           id?: string
           limpeza_efetuada?: boolean
@@ -597,10 +582,7 @@ export type Database = {
           meio_aprovacao?: string | null
           num_serie?: string | null
           numero?: number
-          observacoes?: string | null
-          observacoes_incluir_pdf?: boolean
           password_pin?: string | null
-          prazo_estimado?: string | null
           relatorio_intervencao?: string | null
           sintomas_cliente?: string | null
           status?: string
