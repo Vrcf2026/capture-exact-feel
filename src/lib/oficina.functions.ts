@@ -186,7 +186,7 @@ export const criarOS = createServerFn({ method: "POST" })
     await requireOficina();
     const { data: os, error } = await supabaseAdmin
       .from("work_orders")
-      .insert({ ...data, status: "rececionado", checklist: (data.checklist ?? DEFAULT_CHECKLIST) as unknown as never })
+      .insert({ ...data, status: "recebido", checklist: (data.checklist ?? DEFAULT_CHECKLIST) as unknown as never })
       .select("id, numero")
       .single();
     if (error || !os) throw new Error(error?.message ?? "Erro ao criar ordem de serviço.");
