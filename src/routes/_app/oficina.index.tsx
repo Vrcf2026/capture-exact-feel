@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { listOS, STATUS_OS, type StatusOS } from "@/lib/oficina.functions";
+import { listOS, STATUS_OS, STATUS_LABELS, type StatusOS } from "@/lib/oficina.functions";
 import { StatusBadgeOS } from "@/components/StatusBadgeOS";
 import { eur, d } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Wrench } from "lucide-react";
+import { Plus, Wrench, BarChart3 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/oficina/")({
   head: () => ({
@@ -32,17 +32,6 @@ export const Route = createFileRoute("/_app/oficina/")({
   }),
   component: OficinaPage,
 });
-
-const LABELS: Record<StatusOS, string> = {
-  rececionado: "Rececionado",
-  em_diagnostico: "Em diagnóstico",
-  aguardar_aprovacao: "Aguarda aprovação",
-  aprovado: "Aprovado",
-  em_reparacao: "Em reparação",
-  pronto: "Pronto",
-  entregue: "Entregue",
-  cancelado: "Cancelado",
-};
 
 function OficinaPage() {
   const [status, setStatus] = useState<StatusOS | "todos">("todos");
@@ -59,11 +48,18 @@ function OficinaPage() {
           <h1 className="text-2xl font-semibold">Ordens de serviço</h1>
           <p className="text-sm text-muted-foreground">Receção, diagnóstico, reparação e entrega.</p>
         </div>
-        <Button asChild>
-          <Link to="/oficina/nova">
-            <Plus className="h-4 w-4 mr-1" /> Nova OS
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/oficina/relatorios">
+              <BarChart3 className="h-4 w-4 mr-1" /> Relatórios
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/oficina/nova">
+              <Plus className="h-4 w-4 mr-1" /> Nova OS
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -81,7 +77,7 @@ function OficinaPage() {
             <SelectItem value="todos">Todos os estados</SelectItem>
             {STATUS_OS.map((s) => (
               <SelectItem key={s} value={s}>
-                {LABELS[s]}
+                {STATUS_LABELS[s]}
               </SelectItem>
             ))}
           </SelectContent>
