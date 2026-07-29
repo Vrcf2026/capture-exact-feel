@@ -9,11 +9,17 @@ import {
   adicionarItemOS,
   removerItemOS,
   entregarOS,
-  assinarRececao,
   uploadAnexoOS,
   removerAnexoOS,
   STATUS_OS,
+  STATUS_LABELS,
+  STATUS_ORDER,
+  DEFAULT_CHECKLIST,
+  ACESSORIOS_OPTIONS,
+  MEIO_APROVACAO_OPTIONS,
   type StatusOS,
+  type ChecklistItem,
+  type CheckStatus,
 } from "@/lib/oficina.functions";
 import { listCatalogo } from "@/lib/admin.functions";
 import { StatusBadgeOS } from "@/components/StatusBadgeOS";
@@ -51,32 +57,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Printer, Upload, X } from "lucide-react";
+import { Plus, Trash2, Printer, Upload, X, Paperclip } from "lucide-react";
 
 export const Route = createFileRoute("/_app/oficina/$id/")({
   head: () => ({ meta: [{ title: "Ordem de serviço — VRCF" }] }),
   component: OSDetalhePage,
 });
-
-const CHECKLIST_ITENS: { key: string; label: string }[] = [
-  { key: "liga", label: "Equipamento liga" },
-  { key: "ecra_ok", label: "Ecrã sem defeitos visíveis" },
-  { key: "teclado_ok", label: "Teclado / rato funcionais" },
-  { key: "bateria_ok", label: "Bateria a carregar" },
-  { key: "wifi_ok", label: "Wi-Fi / rede a funcionar" },
-  { key: "carcaca_ok", label: "Carcaça sem danos" },
-];
-
-const STATUS_LABELS: Record<StatusOS, string> = {
-  rececionado: "Rececionado",
-  em_diagnostico: "Em diagnóstico",
-  aguardar_aprovacao: "Aguarda aprovação",
-  aprovado: "Aprovado",
-  em_reparacao: "Em reparação",
-  pronto: "Pronto",
-  entregue: "Entregue",
-  cancelado: "Cancelado",
-};
 
 const METODOS = [
   { v: "dinheiro", label: "Dinheiro" },
@@ -124,36 +110,41 @@ function OSDetalhePage() {
   const addItem = useServerFn(adicionarItemOS);
   const delItem = useServerFn(removerItemOS);
   const entregar = useServerFn(entregarOS);
-  const assinarRec = useServerFn(assinarRececao);
   const uploadAnexo = useServerFn(uploadAnexoOS);
   const removerAnexo = useServerFn(removerAnexoOS);
 
-  const [relatorio, setRelatorio] = useState<string | null>(null);
   const [assinaturaRececao, setAssinaturaRececao] = useState<string | null>(null);
   const [assinaturaEntrega, setAssinaturaEntrega] = useState<string | null>(null);
   const [limpeza, setLimpeza] = useState(false);
   const [testes, setTestes] = useState(false);
+  const [valorTotalPagoStr, setValorTotalPagoStr] = useState<string | null>(null);
   const [metodoPag, setMetodoPag] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
   const [novoItemCatalogo, setNovoItemCatalogo] = useState<string>("_livre");
   const [novaDesc, setNovaDesc] = useState("");
   const [novaQtd, setNovaQtd] = useState("1");
   const [novoPreco, setNovoPreco] = useState("0");
   const [aEnviar, setAEnviar] = useState(false);
+  const [acessorioOutro, setAcessorioOutro] = useState<string | null>(null);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["os", id] });
 
   const statusM = useMutation({
-    mutationFn: (status: StatusOS) => mudarStatus({ data: { id, status } }),
+    mutationFn: (novoStatus: StatusOS) => {
+      const oldIdx = STATUS_ORDER.indexOf(data!.os.status as StatusOS);
+      const newIdx = STATUS_ORDER.indexOf(novoStatus);
+      const locked = newIdx < oldIdx ? true : !!data!.os.auto_status_locked;
+      return mudarStatus({ data: { id, status: novoStatus, auto_status_locked: locked } });
+    },
     onSuccess: invalidate,
   });
 
-  const relatorioM = useMutation({
-    mutationFn: () => atualizar({ data: { id, relatorio_intervencao: relatorio ?? undefined } }),
+  const campoM = useMutation({
+    mutationFn: (campo: Record<string, unknown>) => atualizar({ data: { id, ...campo } }),
     onSuccess: invalidate,
   });
 
-  const checklistM = useMutation({
-    mutationFn: (checklist: Record<string, boolean>) => atualizar({ data: { id, checklist } }),
+  const assinarRecM = useMutation({
+    mutationFn: () => atualizar({ data: { id, assinatura_rececao: assinaturaRececao ?? "" } }),
     onSuccess: invalidate,
   });
 
@@ -184,11 +175,6 @@ function OSDetalhePage() {
     onSuccess: invalidate,
   });
 
-  const assinarRecM = useMutation({
-    mutationFn: () => assinarRec({ data: { id, assinatura_rececao: assinaturaRececao ?? "" } }),
-    onSuccess: invalidate,
-  });
-
   const uploadAnexoM = useMutation({
     mutationFn: async (files: FileList) => {
       setAEnviar(true);
@@ -205,10 +191,9 @@ function OSDetalhePage() {
   });
 
   const removerAnexoM = useMutation({
-    mutationFn: (path: string) => removerAnexo({ data: { work_order_id: id, path } }),
+    mutationFn: (anexoId: string) => removerAnexo({ data: { work_order_id: id, anexo_id: anexoId } }),
     onSuccess: invalidate,
   });
-
 
   const entregarM = useMutation({
     mutationFn: () =>
@@ -218,6 +203,7 @@ function OSDetalhePage() {
           assinatura_entrega: assinaturaEntrega ?? "",
           limpeza_efetuada: limpeza,
           testes_finais_ok: testes,
+          valor_total_pago: valorTotalPagoStr ? Number(valorTotalPagoStr) : null,
           metodo_pagamento: metodoPag,
         },
       }),
@@ -238,10 +224,32 @@ function OSDetalhePage() {
 
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
 
-  const { os, itens } = data;
-  const checklist = (os.checklist ?? {}) as Record<string, boolean>;
+  const { os, itens, anexos } = data;
+  const checklist: ChecklistItem[] =
+    Array.isArray(os.checklist) && os.checklist.length > 0
+      ? (os.checklist as unknown as ChecklistItem[])
+      : DEFAULT_CHECKLIST;
+  const acessoriosAtuais: string[] = (os.acessorios as string[] | null) ?? [];
+  const acessoriosConhecidos = acessoriosAtuais.filter((a) => (ACESSORIOS_OPTIONS as readonly string[]).includes(a));
+  const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const jaEntregue = os.status === "entregue";
   const podeEntregar = itens.length === 0 || total === 0 ? true : !!assinaturaEntrega;
+
+  function guardarChecklist(novoChecklist: ChecklistItem[]) {
+    campoM.mutate({ checklist: novoChecklist });
+  }
+
+  function toggleAcessorio(acc: string) {
+    const novos = acessoriosConhecidos.includes(acc)
+      ? acessoriosConhecidos.filter((a) => a !== acc)
+      : [...acessoriosConhecidos, acc];
+    campoM.mutate({ acessorios: [...novos, ...acessoriosOutros] });
+  }
+
+  function guardarOutros(valor: string) {
+    const lista = valor.split(",").map((s) => s.trim()).filter(Boolean);
+    campoM.mutate({ acessorios: [...acessoriosConhecidos, ...lista] });
+  }
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -250,6 +258,9 @@ function OSDetalhePage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold">OS #{os.numero}</h1>
             <StatusBadgeOS status={os.status as StatusOS} />
+            {os.auto_status_locked && (
+              <span className="text-xs text-muted-foreground italic">Auto-estado desativado</span>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {os.cliente_nome} · {os.equipamento} {os.marca_modelo ? `· ${os.marca_modelo}` : ""}
@@ -263,7 +274,7 @@ function OSDetalhePage() {
           </Button>
           {!jaEntregue && (
             <Select value={os.status} onValueChange={(v) => statusM.mutate(v as StatusOS)}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-52">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +291,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Dados</CardTitle>
+          <CardTitle className="text-base">Dados do cliente e equipamento</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -296,127 +307,146 @@ function OSDetalhePage() {
             {dt(os.data_rececao)}
           </div>
           <div>
-            <span className="text-muted-foreground">Valor estimado: </span>
-            {os.valor_estimado ? eur(os.valor_estimado) : "—"}
-          </div>
-          <div className="col-span-2">
-            <span className="text-muted-foreground">Sintomas descritos: </span>
-            {os.sintomas_cliente ?? "—"}
+            <span className="text-muted-foreground">Cliente rápido: </span>
+            {os.cliente_rapido ? "Sim" : "Não"}
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Assinatura na receção</CardTitle>
+          <CardTitle className="text-base">Diagnóstico inicial</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <SignaturePad
-            value={assinaturaRececao ?? (os.assinatura_rececao as string | null)}
-            onChange={setAssinaturaRececao}
-            disabled={jaEntregue}
-          />
-          {!jaEntregue && (
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => assinarRecM.mutate()}
-                disabled={assinaturaRececao === null || assinarRecM.isPending}
-              >
-                Guardar assinatura
-              </Button>
-            </div>
-          )}
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Sintomas relatados pelo cliente</Label>
+            <Textarea
+              rows={3}
+              disabled={jaEntregue}
+              defaultValue={os.sintomas_cliente ?? ""}
+              onBlur={(e) => campoM.mutate({ sintomas_cliente: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Assinatura do cliente (aceitação de termos)</Label>
+            <SignaturePad
+              value={assinaturaRececao ?? (os.assinatura_rececao as string | null)}
+              onChange={setAssinaturaRececao}
+              disabled={jaEntregue}
+            />
+            {!jaEntregue && (
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => assinarRecM.mutate()}
+                  disabled={assinaturaRececao === null}
+                >
+                  Guardar assinatura
+                </Button>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Anexos / fotos</CardTitle>
+          <CardTitle className="text-base">Checklist de entrada</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {(data?.anexos_urls ?? []).map(({ path, url }) => (
-              <div key={path} className="relative group">
-                <img src={url} alt="Anexo" className="h-24 w-full object-cover rounded-md border border-border" />
-                {!jaEntregue && (
-                  <button
-                    onClick={() => removerAnexoM.mutate(path)}
-                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            {checklist.map((item, i) => (
+              <div key={item.item} className="border-b border-border/50 py-2">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium text-sm flex-1">{item.item}</span>
+                  {(["ok", "defeito", "na"] as CheckStatus[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={jaEntregue}
+                      onClick={() => {
+                        const novo = checklist.map((it, idx) =>
+                          idx === i ? { ...it, status: it.status === s ? null : s } : it,
+                        );
+                        guardarChecklist(novo);
+                      }}
+                      className={`w-7 h-7 rounded-md border text-xs font-bold flex-shrink-0 ${
+                        item.status === s
+                          ? s === "ok"
+                            ? "bg-emerald-500/20 text-emerald-600 border-emerald-500"
+                            : s === "defeito"
+                              ? "bg-destructive/20 text-destructive border-destructive"
+                              : "bg-muted text-muted-foreground border-border"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      {s === "ok" ? "✓" : s === "defeito" ? "✗" : "—"}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  className="h-8 text-xs mt-1"
+                  placeholder="Notas…"
+                  disabled={jaEntregue}
+                  defaultValue={item.notas}
+                  onBlur={(e) => {
+                    const novo = checklist.map((it, idx) => (idx === i ? { ...it, notas: e.target.value } : it));
+                    guardarChecklist(novo);
+                  }}
+                />
               </div>
             ))}
-
           </div>
-          {!jaEntregue && (
-            <div>
-              <Label htmlFor="upload-anexo" className="inline-flex">
-                <Button type="button" variant="outline" size="sm" disabled={aEnviar} asChild>
-                  <span>
-                    <Upload className="h-4 w-4 mr-1" /> {aEnviar ? "A enviar…" : "Adicionar fotos"}
-                  </span>
-                </Button>
-              </Label>
-              <input
-                id="upload-anexo"
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => e.target.files && uploadAnexoM.mutate(e.target.files)}
+
+          <div>
+            <Label className="mb-2 block">Acessórios entregues</Label>
+            <div className="flex flex-wrap gap-3">
+              {ACESSORIOS_OPTIONS.map((acc) => (
+                <label key={acc} className="flex items-center gap-2 cursor-pointer text-sm">
+                  <Checkbox
+                    checked={acessoriosConhecidos.includes(acc)}
+                    disabled={jaEntregue}
+                    onCheckedChange={() => toggleAcessorio(acc)}
+                  />
+                  {acc}
+                </label>
+              ))}
+            </div>
+            <div className="mt-2">
+              <Label className="text-xs text-muted-foreground mb-1 block">Outro(s)</Label>
+              <Input
+                placeholder="Ex: Disco externo, Pen USB…"
+                disabled={jaEntregue}
+                defaultValue={acessorioOutro ?? acessoriosOutros.join(", ")}
+                onChange={(e) => setAcessorioOutro(e.target.value)}
+                onBlur={(e) => guardarOutros(e.target.value)}
+                className="max-w-md"
               />
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Checklist de diagnóstico</CardTitle>
+          <CardTitle className="text-base">Diagnóstico técnico</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
-          {CHECKLIST_ITENS.map((it) => (
-            <label key={it.key} className="flex items-center gap-2 text-sm">
-              <Checkbox
-                checked={!!checklist[it.key]}
-                disabled={jaEntregue}
-                onCheckedChange={(v) => checklistM.mutate({ ...checklist, [it.key]: !!v })}
-              />
-              {it.label}
-            </label>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Diagnóstico técnico / relatório</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent>
+          <Label>Verificação técnica</Label>
           <Textarea
             rows={4}
             disabled={jaEntregue}
-            defaultValue={os.relatorio_intervencao ?? ""}
-            onChange={(e) => setRelatorio(e.target.value)}
-            placeholder="Descrição da intervenção, peças substituídas, testes efetuados…"
+            defaultValue={os.diagnostico_tecnico ?? ""}
+            onBlur={(e) => campoM.mutate({ diagnostico_tecnico: e.target.value })}
+            placeholder="Resultado da verificação técnica antes de enviar orçamento…"
           />
-          {!jaEntregue && (
-            <div className="flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => relatorioM.mutate()} disabled={relatorio === null}>
-                Guardar relatório
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Orçamento — peças e serviços</CardTitle>
+          <CardTitle className="text-base">Orçamento e autorização</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-border">
@@ -518,38 +548,29 @@ function OSDetalhePage() {
           <div className="flex justify-end text-sm font-medium pt-2 border-t border-border">
             Total: {eur(total)}
           </div>
-        </CardContent>
-      </Card>
 
-      {!jaEntregue ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Entrega</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={limpeza} onCheckedChange={(v) => setLimpeza(!!v)} />
-                Limpeza interna efetuada
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={testes} onCheckedChange={(v) => setTestes(!!v)} />
-                Testes finais OK
-              </label>
-            </div>
+          <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border">
             <div className="space-y-2">
-              <Label>Assinatura do cliente na entrega</Label>
-              <SignaturePad value={assinaturaEntrega} onChange={setAssinaturaEntrega} />
+              <Label>Aprovado por</Label>
+              <Input
+                disabled={jaEntregue}
+                defaultValue={os.aprovado_por ?? ""}
+                onBlur={(e) => campoM.mutate({ aprovado_por: e.target.value })}
+              />
             </div>
-            {itens.length > 0 && total > 0 && (
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label>Método de pagamento</Label>
-                <Select value={metodoPag} onValueChange={(v) => setMetodoPag(v as typeof metodoPag)}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue />
+                <Label>Meio</Label>
+                <Select
+                  value={os.meio_aprovacao ?? ""}
+                  onValueChange={(v) => campoM.mutate({ meio_aprovacao: v })}
+                  disabled={jaEntregue}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    {METODOS.map((m) => (
+                    {MEIO_APROVACAO_OPTIONS.map((m) => (
                       <SelectItem key={m.v} value={m.v}>
                         {m.label}
                       </SelectItem>
@@ -557,7 +578,170 @@ function OSDetalhePage() {
                   </SelectContent>
                 </Select>
               </div>
-            )}
+              <div className="space-y-2">
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  disabled={jaEntregue}
+                  defaultValue={os.data_aprovacao ? os.data_aprovacao.slice(0, 10) : ""}
+                  onBlur={(e) => campoM.mutate({ data_aprovacao: e.target.value || null })}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="space-y-2 max-w-xs">
+            <Label>Prazo estimado de entrega</Label>
+            <Input
+              type="date"
+              disabled={jaEntregue}
+              defaultValue={os.prazo_estimado ? os.prazo_estimado.slice(0, 10) : ""}
+              onBlur={(e) => campoM.mutate({ prazo_estimado: e.target.value || null })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Relatório de intervenção</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            rows={4}
+            disabled={jaEntregue}
+            defaultValue={os.relatorio_intervencao ?? ""}
+            onBlur={(e) => campoM.mutate({ relatorio_intervencao: e.target.value })}
+            placeholder="Descrição da intervenção, peças substituídas, testes efetuados…"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Observações</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Textarea
+            rows={3}
+            disabled={jaEntregue}
+            defaultValue={os.observacoes ?? ""}
+            onBlur={(e) => campoM.mutate({ observacoes: e.target.value })}
+          />
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox
+              checked={!!os.observacoes_incluir_pdf}
+              disabled={jaEntregue}
+              onCheckedChange={(v) => campoM.mutate({ observacoes_incluir_pdf: !!v })}
+            />
+            Incluir observações no PDF
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Anexos / fotos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {anexos.map((a) => (
+              <div key={a.id} className="relative group">
+                {a.tipo?.startsWith("image/") && a.url ? (
+                  <img src={a.url} alt={a.nome} className="h-24 w-full object-cover rounded-md border border-border" />
+                ) : (
+                  <a
+                    href={a.url ?? "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="h-24 w-full flex flex-col items-center justify-center gap-1 rounded-md border border-border text-xs text-muted-foreground p-1 text-center"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                    {a.nome}
+                  </a>
+                )}
+                {!jaEntregue && (
+                  <button
+                    onClick={() => removerAnexoM.mutate(a.id)}
+                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {!jaEntregue && (
+            <div>
+              <Label htmlFor="upload-anexo" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" disabled={aEnviar} asChild>
+                  <span>
+                    <Upload className="h-4 w-4 mr-1" /> {aEnviar ? "A enviar…" : "Adicionar fotos"}
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="upload-anexo"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && uploadAnexoM.mutate(e.target.files)}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {!jaEntregue ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Controlo de qualidade e entrega</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={limpeza} onCheckedChange={(v) => setLimpeza(!!v)} />
+                Limpeza efetuada
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={testes} onCheckedChange={(v) => setTestes(!!v)} />
+                Testes finais OK
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valor total pago (€)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder={total ? total.toFixed(2) : "0.00"}
+                  value={valorTotalPagoStr ?? ""}
+                  onChange={(e) => setValorTotalPagoStr(e.target.value)}
+                />
+              </div>
+              {itens.length > 0 && total > 0 && (
+                <div className="space-y-2">
+                  <Label>Método de pagamento (venda gerada na Loja)</Label>
+                  <Select value={metodoPag} onValueChange={(v) => setMetodoPag(v as typeof metodoPag)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {METODOS.map((m) => (
+                        <SelectItem key={m.v} value={m.v}>
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Assinatura de levantamento (conforme)</Label>
+              <SignaturePad value={assinaturaEntrega} onChange={setAssinaturaEntrega} />
+            </div>
 
             {entregarM.isError && (
               <p className="text-sm text-destructive">{(entregarM.error as Error).message}</p>
@@ -611,9 +795,15 @@ function OSDetalhePage() {
             <CardTitle className="text-base">Entregue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <p className="text-muted-foreground">Entregue em {dt(os.data_entrega)}.</p>
+            <p className="text-muted-foreground">
+              Entregue em {dt(os.data_entrega)} · Valor pago: {eur(os.valor_total_pago ?? 0)}
+            </p>
             {os.assinatura_entrega && (
-              <img src={os.assinatura_entrega} alt="Assinatura" className="h-24 rounded-md border border-border bg-white" />
+              <img
+                src={os.assinatura_entrega}
+                alt="Assinatura"
+                className="h-24 rounded-md border border-border bg-white"
+              />
             )}
           </CardContent>
         </Card>
