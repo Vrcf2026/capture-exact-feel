@@ -21,7 +21,14 @@ import {
   type ChecklistItem,
   type CheckStatus,
 } from "@/lib/oficina.functions";
-import { listCatalogo } from "@/lib/admin.functions";
+import { listCatalogo, getCompany } from "@/lib/admin.functions";
+import { generatePdfOS, type PDFType, type OSParaPdf } from "@/lib/generatePdfOS";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { StatusBadgeOS } from "@/components/StatusBadgeOS";
 import { SignaturePad } from "@/components/SignaturePad";
 import { eur, dt } from "@/lib/format";
@@ -57,7 +64,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Printer, Upload, X, Paperclip } from "lucide-react";
+import { Plus, Trash2, Upload, X, Paperclip, FileDown, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/_app/oficina/$id/")({
   head: () => ({ meta: [{ title: "Ordem de serviço — VRCF" }] }),
@@ -104,6 +111,8 @@ function OSDetalhePage() {
 
   const { data, isLoading } = useQuery({ queryKey: ["os", id], queryFn: () => getOS({ data: { id } }) });
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
+  const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   const atualizar = useServerFn(atualizarOS);
   const mudarStatus = useServerFn(mudarStatusOS);
@@ -222,6 +231,36 @@ function OSDetalhePage() {
     [data?.itens],
   );
 
+  async function gerarPdf(tipo: PDFType) {
+    if (!data) return;
+    setGerandoPdf(true);
+    try {
+      // Igual ao original: gerar o PDF de orçamento avança automaticamente
+      // para "Orçamento Enviado" se ainda estiver numa fase inicial e não estiver travado.
+      if (
+        tipo === "orcamento" &&
+        data.itens.length > 0 &&
+        ["recebido", "diagnostico"].includes(data.os.status) &&
+        !data.os.auto_status_locked
+      ) {
+        await statusM.mutateAsync("orcamento");
+      }
+      await generatePdfOS(
+        data.os as unknown as OSParaPdf,
+        data.itens,
+        data.anexos,
+        empresa ?? {},
+        tipo,
+      );
+    } catch (e) {
+      alert((e as Error).message ?? "Erro ao gerar PDF.");
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
+
+
+
   if (isLoading || !data) return <p className="text-sm text-muted-foreground">A carregar…</p>;
 
   const { os, itens, anexos } = data;
@@ -267,11 +306,19 @@ function OSDetalhePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/oficina/$id/imprimir" params={{ id }} target="_blank">
-              <Printer className="h-4 w-4 mr-1" /> Imprimir / PDF
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={gerandoPdf}>
+                <FileDown className="h-4 w-4 mr-1" /> {gerandoPdf ? "A gerar…" : "PDF"} <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => gerarPdf("diagnostico")}>📋 Receção / Diagnóstico</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => gerarPdf("orcamento")}>💰 Orçamento</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => gerarPdf("completo")}>📄 Completo</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => gerarPdf("full")}>📦 Full (com anexos)</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {!jaEntregue && (
             <Select value={os.status} onValueChange={(v) => statusM.mutate(v as StatusOS)}>
               <SelectTrigger className="w-52">
