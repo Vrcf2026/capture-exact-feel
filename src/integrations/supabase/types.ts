@@ -17,48 +17,73 @@ export type Database = {
       caixa_diario: {
         Row: {
           aberto_em: string
-          aberto_por: string
           data: string
+          estado: string
           fechado_em: string | null
-          fechado_por: string | null
           id: string
+          num_fechos: number
           observacoes: string | null
-          valor_final_contado: number | null
-          valor_inicial: number
+          reaberta: boolean
+          reaberta_em: string | null
+          reaberta_motivo: string | null
+          reaberta_por: string | null
+          saldo_final: number | null
+          saldo_inicial: number
+          utilizador_abertura_id: string
+          utilizador_fecho_id: string | null
         }
         Insert: {
           aberto_em?: string
-          aberto_por: string
           data: string
+          estado?: string
           fechado_em?: string | null
-          fechado_por?: string | null
           id?: string
+          num_fechos?: number
           observacoes?: string | null
-          valor_final_contado?: number | null
-          valor_inicial?: number
+          reaberta?: boolean
+          reaberta_em?: string | null
+          reaberta_motivo?: string | null
+          reaberta_por?: string | null
+          saldo_final?: number | null
+          saldo_inicial?: number
+          utilizador_abertura_id: string
+          utilizador_fecho_id?: string | null
         }
         Update: {
           aberto_em?: string
-          aberto_por?: string
           data?: string
+          estado?: string
           fechado_em?: string | null
-          fechado_por?: string | null
           id?: string
+          num_fechos?: number
           observacoes?: string | null
-          valor_final_contado?: number | null
-          valor_inicial?: number
+          reaberta?: boolean
+          reaberta_em?: string | null
+          reaberta_motivo?: string | null
+          reaberta_por?: string | null
+          saldo_final?: number | null
+          saldo_inicial?: number
+          utilizador_abertura_id?: string
+          utilizador_fecho_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "caixa_diario_aberto_por_fkey"
-            columns: ["aberto_por"]
+            columns: ["utilizador_abertura_id"]
             isOneToOne: false
             referencedRelation: "utilizadores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "caixa_diario_fechado_por_fkey"
-            columns: ["fechado_por"]
+            columns: ["utilizador_fecho_id"]
+            isOneToOne: false
+            referencedRelation: "utilizadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caixa_diario_reaberta_por_fkey"
+            columns: ["reaberta_por"]
             isOneToOne: false
             referencedRelation: "utilizadores"
             referencedColumns: ["id"]
@@ -157,6 +182,7 @@ export type Database = {
       }
       pagamentos: {
         Row: {
+          caixa_diario_id: string | null
           data: string
           id: string
           liquidado: boolean
@@ -168,6 +194,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          caixa_diario_id?: string | null
           data?: string
           id?: string
           liquidado?: boolean
@@ -179,6 +206,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          caixa_diario_id?: string | null
           data?: string
           id?: string
           liquidado?: boolean
@@ -190,6 +218,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pagamentos_caixa_diario_id_fkey"
+            columns: ["caixa_diario_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_diario"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pagamentos_liquidado_por_fkey"
             columns: ["liquidado_por"]
@@ -257,6 +292,7 @@ export type Database = {
           anulado_em: string | null
           anulado_motivo: string | null
           anulado_por: string | null
+          caixa_diario_id: string | null
           cliente_id: string | null
           data: string
           editado_em: string | null
@@ -276,6 +312,7 @@ export type Database = {
           anulado_em?: string | null
           anulado_motivo?: string | null
           anulado_por?: string | null
+          caixa_diario_id?: string | null
           cliente_id?: string | null
           data?: string
           editado_em?: string | null
@@ -295,6 +332,7 @@ export type Database = {
           anulado_em?: string | null
           anulado_motivo?: string | null
           anulado_por?: string | null
+          caixa_diario_id?: string | null
           cliente_id?: string | null
           data?: string
           editado_em?: string | null
@@ -315,6 +353,13 @@ export type Database = {
             columns: ["anulado_por"]
             isOneToOne: false
             referencedRelation: "utilizadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registos_caixa_diario_id_fkey"
+            columns: ["caixa_diario_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_diario"
             referencedColumns: ["id"]
           },
           {
@@ -358,25 +403,28 @@ export type Database = {
         Row: {
           caixa_id: string
           criado_em: string
-          criado_por: string
+          descricao: string
           id: string
-          motivo: string
+          tipo: string
+          utilizador_id: string
           valor: number
         }
         Insert: {
           caixa_id: string
           criado_em?: string
-          criado_por: string
+          descricao: string
           id?: string
-          motivo: string
+          tipo?: string
+          utilizador_id: string
           valor: number
         }
         Update: {
           caixa_id?: string
           criado_em?: string
-          criado_por?: string
+          descricao?: string
           id?: string
-          motivo?: string
+          tipo?: string
+          utilizador_id?: string
           valor?: number
         }
         Relationships: [
@@ -389,7 +437,7 @@ export type Database = {
           },
           {
             foreignKeyName: "saidas_caixa_criado_por_fkey"
-            columns: ["criado_por"]
+            columns: ["utilizador_id"]
             isOneToOne: false
             referencedRelation: "utilizadores"
             referencedColumns: ["id"]
