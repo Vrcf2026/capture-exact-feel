@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { liquidarPagamento, listContaCorrente } from "@/lib/loja.functions";
-import { listVendedores } from "@/lib/admin.functions";
+import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { eur, dt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,23 +59,29 @@ const METODOS = [
   { v: "outro", label: "Outro" },
 ] as const;
 
-function LiquidarDialog({ divida, onDone }: { divida: Row; onDone: () => void }) {
+function LiquidarDialog({
+  divida,
+  vendedorId,
+  vendedorPin,
+  onDone,
+}: {
+  divida: Row;
+  vendedorId: string;
+  vendedorPin: string;
+  onDone: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [valor, setValor] = useState(divida.saldo);
   const [metodo, setMetodo] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
-  const [vendedorId, setVendedorId] = useState("");
-  const [pin, setPin] = useState("");
-  const { data: vendedores = [] } = useQuery({ queryKey: ["vendedores"], queryFn: () => listVendedores() });
 
   const liq = useServerFn(liquidarPagamento);
   const m = useMutation({
     mutationFn: () =>
       liq({
-        data: { pagamento_id: divida.id, valor, metodo, vendedor_id: vendedorId, vendedor_pin: pin },
+        data: { pagamento_id: divida.id, valor, metodo, vendedor_id: vendedorId, vendedor_pin: vendedorPin },
       }),
     onSuccess: () => {
       setOpen(false);
-      setPin("");
       onDone();
     },
   });
@@ -109,29 +115,12 @@ function LiquidarDialog({ divida, onDone }: { divida: Row; onDone: () => void })
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Vendedor</Label>
-              <Select value={vendedorId} onValueChange={setVendedorId}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  {vendedores.filter((v) => v.ativo).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">PIN</Label>
-              <Input type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} />
-            </div>
-          </div>
           {m.error && <p className="text-sm text-destructive">{(m.error as Error).message}</p>}
         </div>
         <DialogFooter>
           <Button
             onClick={() => m.mutate()}
-            disabled={m.isPending || valor <= 0 || valor > divida.saldo || !vendedorId || !pin}
+            disabled={m.isPending || valor <= 0 || valor > divida.saldo}
           >
             {m.isPending ? "A registar…" : "Confirmar recebimento"}
           </Button>
@@ -143,6 +132,7 @@ function LiquidarDialog({ divida, onDone }: { divida: Row; onDone: () => void })
 
 function ContaCorrentePage() {
   const qc = useQueryClient();
+  const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
   const { data = [] } = useQuery({
     queryKey: ["cc"],
     queryFn: () => listContaCorrente() as unknown as Promise<Row[]>,
@@ -165,10 +155,17 @@ function ContaCorrentePage() {
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Conta-corrente</h1>
           <p className="text-sm text-muted-foreground">Pagamentos em conta-corrente por liquidar.</p>
+          {pronto && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Vendedor: <span className="font-medium text-foreground">{vendedorNome}</span>{" "}
+              <Button size="sm" variant="ghost" onClick={trocarVendedor} className="h-auto py-0 px-1">Trocar</Button>
+            </p>
+          )}
         </div>
         <div className="text-right">
           <div className="text-xs uppercase text-muted-foreground">Total em aberto</div>
@@ -216,7 +213,9 @@ function ContaCorrentePage() {
                       <TableCell className="text-right mono">{eur(r.ja_pago)}</TableCell>
                       <TableCell className="text-right mono font-medium">{eur(r.saldo)}</TableCell>
                       <TableCell>
-                        <LiquidarDialog divida={r} onDone={onDone} />
+                        {pronto && (
+                          <LiquidarDialog divida={r} vendedorId={vendedorId!} vendedorPin={vendedorPin!} onDone={onDone} />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -21,6 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/clientes")({
@@ -73,6 +80,7 @@ function ClientesPage() {
               <TableHead>Nome</TableHead>
               <TableHead>NIF</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>Preço</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -89,6 +97,9 @@ function ClientesPage() {
                   <TableCell className="font-medium">{c.nome}</TableCell>
                   <TableCell className="mono">{c.nif ?? "—"}</TableCell>
                   <TableCell className="mono">{c.telefone ?? "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {c.linha_preco === 2 ? "Preço 2" : "Preço 1"}
+                  </TableCell>
                   <TableCell>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}>
                       <Pencil className="h-4 w-4" />
@@ -142,6 +153,7 @@ function EditDialog({
     nome: item.nome ?? "",
     nif: item.nif ?? "",
     telefone: item.telefone ?? "",
+    linha_preco: (item.linha_preco === 2 ? 2 : 1) as 1 | 2,
   });
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -163,6 +175,16 @@ function EditDialog({
               <Label>Telefone</Label>
               <Input value={state.telefone} onChange={(e) => setState({ ...state, telefone: e.target.value })} />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Preço a aplicar</Label>
+            <Select value={String(state.linha_preco)} onValueChange={(v) => setState({ ...state, linha_preco: Number(v) as 1 | 2 })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Preço 1 (normal)</SelectItem>
+                <SelectItem value="2">Preço 2</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
         </div>

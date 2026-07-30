@@ -262,9 +262,8 @@ const pagamentoSchema = z.object({
 });
 const vendaSchema = z.object({
   cliente_id: z.string().uuid().nullable().optional(),
-  vendedor_id: z.string().uuid().nullable().optional(),
-  vendedor_pin: z.string().regex(/^\d{4,8}$/).optional(),
-  usar_utilizador_sessao: z.boolean().default(true),
+  vendedor_id: z.string().uuid(),
+  vendedor_pin: z.string().regex(/^\d{4,8}$/, "PIN inválido."),
   itens: z.array(itemSchema).min(1),
   pagamentos: z.array(pagamentoSchema).min(1),
   notas: z.string().optional().nullable(),
@@ -284,23 +283,16 @@ export const criarVenda = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!caixa) throw new Error("Abra a caixa antes de registar vendas.");
 
-    let utilizador_id: string | null = null;
-    let vendedor_id: string | null = null;
-
-    if (data.vendedor_id) {
-      if (!data.vendedor_pin) throw new Error("PIN do vendedor em falta.");
-      const { data: v } = await supabaseAdmin
-        .from("vendedores")
-        .select("id, pin_hash, ativo")
-        .eq("id", data.vendedor_id)
-        .maybeSingle();
-      if (!v || !v.ativo) throw new Error("Vendedor inválido.");
-      const ok = await bcrypt.compare(data.vendedor_pin, v.pin_hash);
-      if (!ok) throw new Error("PIN incorreto.");
-      vendedor_id = v.id;
-    } else {
-      utilizador_id = u.id;
-    }
+    if (!data.vendedor_id || !data.vendedor_pin) throw new Error("Identifique o vendedor antes de guardar a venda.");
+    const { data: v } = await supabaseAdmin
+      .from("vendedores")
+      .select("id, pin_hash, ativo")
+      .eq("id", data.vendedor_id)
+      .maybeSingle();
+    if (!v || !v.ativo) throw new Error("Vendedor inválido.");
+    const okPin = await bcrypt.compare(data.vendedor_pin, v.pin_hash);
+    if (!okPin) throw new Error("PIN incorreto.");
+    const vendedor_id = v.id;
 
     const total = data.itens.reduce(
       (s, it) => s + Math.round(it.quantidade * it.preco_unitario * 100) / 100,
@@ -316,7 +308,7 @@ export const criarVenda = createServerFn({ method: "POST" })
       .from("registos")
       .insert({
         cliente_id: data.cliente_id ?? null,
-        utilizador_id,
+        utilizador_id: u.id,
         vendedor_id,
         caixa_diario_id: caixa.id,
         total,

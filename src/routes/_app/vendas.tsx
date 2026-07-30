@@ -3,7 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { criarVenda } from "@/lib/loja.functions";
-import { listCatalogo, listClientes, listVendedores } from "@/lib/admin.functions";
+import { listCatalogo, listClientes } from "@/lib/admin.functions";
+import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,12 +57,10 @@ function NovaVendaPage() {
   const navigate = useNavigate();
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
-  const { data: vendedores = [] } = useQuery({ queryKey: ["vendedores"], queryFn: () => listVendedores() });
   const criar = useServerFn(criarVenda);
+  const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
-  const [vendedorId, setVendedorId] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
   const [itens, setItens] = useState<Item[]>([]);
   const [pags, setPags] = useState<Pag[]>([{ key: uid(), metodo: "dinheiro", valor: 0 }]);
   const [notas, setNotas] = useState("");
@@ -76,9 +75,17 @@ function NovaVendaPage() {
   function adicionarDoCatalogo(id: string) {
     const i = catalogo.find((c) => c.id === id);
     if (!i) return;
+    const cliente = clientes.find((c) => c.id === clienteId);
+    const usarPreco2 = cliente?.linha_preco === 2 && Number(i.preco2) > 0;
     setItens((prev) => [
       ...prev,
-      { key: uid(), catalogo_id: i.id, descricao: i.nome, quantidade: 1, preco_unitario: Number(i.preco) },
+      {
+        key: uid(),
+        catalogo_id: i.id,
+        descricao: i.nome,
+        quantidade: 1,
+        preco_unitario: usarPreco2 ? Number(i.preco2) : Number(i.preco),
+      },
     ]);
   }
   function adicionarLivre() {
@@ -94,8 +101,7 @@ function NovaVendaPage() {
         data: {
           cliente_id: clienteId,
           vendedor_id: vendedorId,
-          vendedor_pin: vendedorId ? pin : undefined,
-          usar_utilizador_sessao: !vendedorId,
+          vendedor_pin: vendedorPin ?? undefined,
           itens: itens.map((i) => ({
             catalogo_id: i.catalogo_id,
             descricao: i.descricao,
@@ -113,15 +119,16 @@ function NovaVendaPage() {
 
   const conta = pags.some((p) => p.metodo === "conta_corrente");
   const podeSubmeter =
+    pronto &&
     itens.length > 0 &&
     itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
     somaPag > 0 &&
     Math.abs(somaPag - total) < 0.01 &&
-    (!conta || clienteId) &&
-    (!vendedorId || pin.length >= 4);
+    (!conta || clienteId);
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div>
         <h1 className="text-2xl font-semibold">Nova venda</h1>
         <p className="text-sm text-muted-foreground">Registo com múltiplos itens e formas de pagamento.</p>
@@ -251,32 +258,13 @@ function NovaVendaPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Vendedor</Label>
-                <Select
-                  value={vendedorId ?? "__me"}
-                  onValueChange={(v) => { setVendedorId(v === "__me" ? null : v); setPin(""); }}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__me">Utilizador da sessão</SelectItem>
-                    {vendedores.filter((v) => v.ativo).map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {vendedorId && (
-                <div className="space-y-1.5">
-                  <Label>PIN do vendedor</Label>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={8}
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                    autoComplete="off"
-                  />
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+                  <span className="font-medium">{vendedorNome ?? "—"}</span>
+                  <Button size="sm" variant="ghost" onClick={trocarVendedor}>
+                    Trocar
+                  </Button>
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
 

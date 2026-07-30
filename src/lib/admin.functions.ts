@@ -68,6 +68,7 @@ const cliSchema = z.object({
   nome: z.string().trim().min(1).max(200),
   nif: z.string().trim().max(20).optional().nullable(),
   telefone: z.string().trim().max(30).optional().nullable(),
+  linha_preco: z.union([z.literal(1), z.literal(2)]).default(1),
 });
 
 export const upsertCliente = createServerFn({ method: "POST" })
@@ -80,6 +81,7 @@ export const upsertCliente = createServerFn({ method: "POST" })
       nome: data.nome,
       nif: data.nif || null,
       telefone: data.telefone || null,
+      linha_preco: data.linha_preco,
     };
     if (data.id) {
       await supabaseAdmin.from("clientes").update(payload).eq("id", data.id);
@@ -109,6 +111,25 @@ export const deleteCliente = createServerFn({ method: "POST" })
   });
 
 // ============ VENDEDORES ============
+export const confirmarVendedorAcesso = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ vendedor_id: z.string().uuid(), pin: z.string().regex(/^\d{4,8}$/, "PIN inválido.") }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireUser } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireUser();
+    const { data: v } = await supabaseAdmin
+      .from("vendedores")
+      .select("id, nome, pin_hash, ativo")
+      .eq("id", data.vendedor_id)
+      .maybeSingle();
+    if (!v || !v.ativo) throw new Error("Vendedor inválido.");
+    const ok = await bcrypt.compare(data.pin, v.pin_hash);
+    if (!ok) throw new Error("PIN incorreto.");
+    return { id: v.id, nome: v.nome };
+  });
+
 export const listVendedores = createServerFn({ method: "GET" }).handler(async () => {
   const { requireUser } = await import("./auth.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

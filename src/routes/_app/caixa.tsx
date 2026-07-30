@@ -11,7 +11,7 @@ import {
   reabrirCaixa,
   removerSaida,
 } from "@/lib/loja.functions";
-import { listVendedores } from "@/lib/admin.functions";
+import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { Route as AppRoute } from "@/routes/_app";
 import { eur, dt, d as dOnly } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -47,47 +47,11 @@ export const Route = createFileRoute("/_app/caixa")({
   component: CaixaPage,
 });
 
-function VendedorPin({
-  vendedorId,
-  setVendedorId,
-  pin,
-  setPin,
-}: {
-  vendedorId: string;
-  setVendedorId: (v: string) => void;
-  pin: string;
-  setPin: (v: string) => void;
-}) {
-  const { data: vendedores = [] } = useQuery({ queryKey: ["vendedores"], queryFn: () => listVendedores() });
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="space-y-1.5">
-        <Label className="text-xs">Vendedor</Label>
-        <Select value={vendedorId} onValueChange={setVendedorId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecionar" />
-          </SelectTrigger>
-          <SelectContent>
-            {vendedores.filter((v) => v.ativo).map((v) => (
-              <SelectItem key={v.id} value={v.id}>
-                {v.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-1.5">
-        <Label className="text-xs">PIN</Label>
-        <Input type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} />
-      </div>
-    </div>
-  );
-}
-
 function CaixaPage() {
   const qc = useQueryClient();
   const { currentUser } = AppRoute.useRouteContext();
   const isAdmin = currentUser.papel === "admin";
+  const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
   const { data: atual, isLoading } = useQuery({
     queryKey: ["caixa-aberto"],
     queryFn: () => caixaAberto(),
@@ -108,24 +72,39 @@ function CaixaPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Caixa</h1>
-        <p className="text-sm text-muted-foreground">Gestão diária do fundo de caixa.</p>
+      {dialog}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Caixa</h1>
+          <p className="text-sm text-muted-foreground">Gestão diária do fundo de caixa.</p>
+        </div>
+        {pronto && (
+          <div className="text-sm text-muted-foreground">
+            Vendedor: <span className="font-medium text-foreground">{vendedorNome}</span>{" "}
+            <Button size="sm" variant="ghost" onClick={trocarVendedor}>Trocar</Button>
+          </div>
+        )}
       </div>
-      {isLoading ? (
+      {!pronto ? null : isLoading ? (
         <div className="text-sm text-muted-foreground">A carregar…</div>
       ) : atual ? (
         <CaixaAberto
           caixa={atual.caixa}
           saidas={atual.saidas}
           totais={atual.totais}
+          vendedorId={vendedorId!}
+          vendedorPin={vendedorPin!}
           onChanged={() => {
             qc.invalidateQueries({ queryKey: ["caixa-aberto"] });
             qc.invalidateQueries({ queryKey: ["caixa-hist"] });
           }}
         />
       ) : (
-        <AbrirCaixaForm onOpened={() => qc.invalidateQueries({ queryKey: ["caixa-aberto"] })} />
+        <AbrirCaixaForm
+          vendedorId={vendedorId!}
+          vendedorPin={vendedorPin!}
+          onOpened={() => qc.invalidateQueries({ queryKey: ["caixa-aberto"] })}
+        />
       )}
       <Card>
         <CardHeader>
@@ -188,14 +167,20 @@ function CaixaPage() {
   );
 }
 
-function AbrirCaixaForm({ onOpened }: { onOpened: () => void }) {
+function AbrirCaixaForm({
+  vendedorId,
+  vendedorPin,
+  onOpened,
+}: {
+  vendedorId: string;
+  vendedorPin: string;
+  onOpened: () => void;
+}) {
   const fn = useServerFn(abrirCaixa);
   const [valor, setValor] = useState(0);
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
-  const [vendedorId, setVendedorId] = useState("");
-  const [pin, setPin] = useState("");
   const m = useMutation({
-    mutationFn: () => fn({ data: { valor_inicial: valor, data, vendedor_id: vendedorId, vendedor_pin: pin } }),
+    mutationFn: () => fn({ data: { valor_inicial: valor, data, vendedor_id: vendedorId, vendedor_pin: vendedorPin } }),
     onSuccess: onOpened,
   });
   return (
@@ -218,8 +203,7 @@ function AbrirCaixaForm({ onOpened }: { onOpened: () => void }) {
             />
           </div>
         </div>
-        <VendedorPin vendedorId={vendedorId} setVendedorId={setVendedorId} pin={pin} setPin={setPin} />
-        <Button onClick={() => m.mutate()} disabled={m.isPending || !vendedorId || !pin}>
+        <Button onClick={() => m.mutate()} disabled={m.isPending}>
           {m.isPending ? "A abrir…" : "Abrir caixa"}
         </Button>
         {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
@@ -246,11 +230,15 @@ function CaixaAberto({
   caixa,
   saidas,
   totais,
+  vendedorId,
+  vendedorPin,
   onChanged,
 }: {
   caixa: { id: string; data: string; saldo_inicial: number; num_fechos: number };
   saidas: Saida[];
   totais: Totais;
+  vendedorId: string;
+  vendedorPin: string;
   onChanged: () => void;
 }) {
   const addFn = useServerFn(adicionarSaida);
@@ -261,12 +249,8 @@ function CaixaAberto({
   const [tipo, setTipo] = useState<"sangria" | "despesa">("despesa");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState(0);
-  const [vendedorIdSaida, setVendedorIdSaida] = useState("");
-  const [pinSaida, setPinSaida] = useState("");
   const [contado, setContado] = useState(0);
   const [obs, setObs] = useState("");
-  const [vendedorIdFecho, setVendedorIdFecho] = useState("");
-  const [pinFecho, setPinFecho] = useState("");
 
   const addM = useMutation({
     mutationFn: () =>
@@ -276,14 +260,13 @@ function CaixaAberto({
           tipo,
           descricao,
           valor,
-          vendedor_id: vendedorIdSaida,
-          vendedor_pin: pinSaida,
+          vendedor_id: vendedorId,
+          vendedor_pin: vendedorPin,
         },
       }),
     onSuccess: () => {
       setDescricao("");
       setValor(0);
-      setPinSaida("");
       onChanged();
     },
   });
@@ -298,8 +281,8 @@ function CaixaAberto({
           id: caixa.id,
           valor_final_contado: contado,
           observacoes: obs || null,
-          vendedor_id: vendedorIdFecho,
-          vendedor_pin: pinFecho,
+          vendedor_id: vendedorId,
+          vendedor_pin: vendedorPin,
         },
       }),
     onSuccess: onChanged,
@@ -398,15 +381,9 @@ function CaixaAberto({
                 />
               </div>
             </div>
-            <VendedorPin
-              vendedorId={vendedorIdSaida}
-              setVendedorId={setVendedorIdSaida}
-              pin={pinSaida}
-              setPin={setPinSaida}
-            />
             <Button
               onClick={() => addM.mutate()}
-              disabled={addM.isPending || !descricao.trim() || valor <= 0 || !vendedorIdSaida || !pinSaida}
+              disabled={addM.isPending || !descricao.trim() || valor <= 0}
             >
               Registar saída
             </Button>
@@ -443,17 +420,11 @@ function CaixaAberto({
             <Label>Observações</Label>
             <Textarea rows={3} value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
-          <VendedorPin
-            vendedorId={vendedorIdFecho}
-            setVendedorId={setVendedorIdFecho}
-            pin={pinFecho}
-            setPin={setPinFecho}
-          />
           {closeM.error && <div className="text-sm text-destructive">{(closeM.error as Error).message}</div>}
           <Button
             variant="destructive"
             onClick={() => closeM.mutate()}
-            disabled={closeM.isPending || !vendedorIdFecho || !pinFecho || (caixa.num_fechos >= 1 && currentUser.papel !== "admin")}
+            disabled={closeM.isPending || (caixa.num_fechos >= 1 && currentUser.papel !== "admin")}
           >
             {closeM.isPending ? "A fechar…" : "Fechar caixa"}
           </Button>
