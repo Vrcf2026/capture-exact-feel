@@ -1,7 +1,7 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+
 // Auth é custom (sessão por cookie), não Supabase Auth:
 // o attachSupabaseAuth gerado NÃO deve ser registado aqui (rebenta no browser).
 
@@ -21,6 +21,6 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 });
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [],
   requestMiddleware: [errorMiddleware],
 }));
