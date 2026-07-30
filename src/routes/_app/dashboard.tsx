@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { relatorio } from "@/lib/loja.functions";
+import { resumoHoje } from "@/lib/loja.functions";
 import { eur } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Suspense } from "react";
@@ -15,7 +15,7 @@ function hojeRange() {
 
 const dashQuery = queryOptions({
   queryKey: ["dashboard-hoje"],
-  queryFn: () => relatorio({ data: hojeRange() }),
+  queryFn: () => resumoHoje(),
   staleTime: 30_000,
 });
 

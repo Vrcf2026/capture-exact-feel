@@ -38,7 +38,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: pagamentos } = await supabaseAdmin
     .from("pagamentos")
-    .select("valor, metodo, liquidado")
+    .select("valor, metodo, liquidado, liquida_pagamento_id")
     .eq("caixa_diario_id", caixaId);
   const { data: saidas } = await supabaseAdmin
     .from("saidas_caixa")
@@ -55,11 +55,13 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     numPagamentos: (pagamentos ?? []).length,
     sangrias: 0,
     despesas: 0,
+    liquidacoes: 0,
   } as Record<string, number>;
 
   for (const p of pagamentos ?? []) {
     const chave = p.metodo in totais ? p.metodo : "outro";
     totais[chave] += Number(p.valor);
+    if (p.liquida_pagamento_id) totais.liquidacoes += Number(p.valor);
   }
   for (const s of saidas ?? []) {
     if (s.tipo === "sangria") totais.sangrias += Number(s.valor);
@@ -76,6 +78,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     numPagamentos: totais.numPagamentos,
     sangrias: totais.sangrias,
     despesas: totais.despesas,
+    liquidacoes: totais.liquidacoes,
     saldoEsperado,
   };
 }
@@ -589,6 +592,41 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Resumo do dia para o Painel — visível a qualquer utilizador com acesso à Loja
+// (o relatório por intervalo, mais abaixo, é que fica restrito a admin).
+export const resumoHoje = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireLoja } = await import("./auth.server");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await requireLoja();
+  const inicio = new Date();
+  inicio.setHours(0, 0, 0, 0);
+  const fim = new Date();
+  fim.setHours(23, 59, 59, 999);
+  const [{ data: vendas }, { data: pags }, { data: saidas }] = await Promise.all([
+    supabaseAdmin
+      .from("registos")
+      .select("id, numero, data, total, anulado")
+      .gte("data", inicio.toISOString())
+      .lte("data", fim.toISOString())
+      .eq("anulado", false),
+    supabaseAdmin
+      .from("pagamentos")
+      .select("metodo, valor, data, registo:registo_id(anulado)")
+      .gte("data", inicio.toISOString())
+      .lte("data", fim.toISOString()),
+    supabaseAdmin
+      .from("saidas_caixa")
+      .select("valor, tipo, criado_em")
+      .gte("criado_em", inicio.toISOString())
+      .lte("criado_em", fim.toISOString()),
+  ]);
+  return {
+    vendas: vendas ?? [],
+    pagamentos: (pags ?? []).filter((p) => !(p.registo as { anulado?: boolean } | null)?.anulado),
+    saidas: saidas ?? [],
+  };
+});
+
 // ============ RELATÓRIOS ============
 const relatSchema = z.object({
   desde: z.string(),
@@ -598,10 +636,10 @@ const relatSchema = z.object({
 export const relatorio = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => relatSchema.parse(d))
   .handler(async ({ data }) => {
-    const { requireLoja } = await import("./auth.server");
+    const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireLoja();
-    const [{ data: vendas }, { data: pags }, { data: saidas }] = await Promise.all([
+    await requireAdmin();
+    const [{ data: vendas }, { data: pags }, { data: saidas }, { data: caixas }] = await Promise.all([
       supabaseAdmin
         .from("registos")
         .select(
@@ -622,10 +660,17 @@ export const relatorio = createServerFn({ method: "POST" })
         .select("valor, descricao, tipo, criado_em")
         .gte("criado_em", data.desde)
         .lte("criado_em", data.ate),
+      supabaseAdmin
+        .from("caixa_diario")
+        .select("id, data, saldo_inicial, saldo_final, estado")
+        .gte("data", data.desde)
+        .lte("data", data.ate)
+        .order("data", { ascending: true }),
     ]);
     return {
       vendas: vendas ?? [],
       pagamentos: (pags ?? []).filter((p) => !(p.registo as { anulado?: boolean } | null)?.anulado),
       saidas: saidas ?? [],
+      caixas: caixas ?? [],
     };
   });

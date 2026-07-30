@@ -15,6 +15,7 @@ export interface CurrentUser {
   acesso_loja: boolean;
   acesso_oficina: boolean;
   ativo: boolean;
+  deve_trocar_password: boolean;
 }
 
 export function sessionConfig() {
@@ -40,7 +41,7 @@ export async function getSessionUser(): Promise<CurrentUser | null> {
   if (!userId) return null;
   const { data, error } = await supabaseAdmin
     .from("utilizadores")
-    .select("id, nome, papel, acesso_loja, acesso_oficina, ativo")
+    .select("id, nome, papel, acesso_loja, acesso_oficina, ativo, deve_trocar_password")
     .eq("id", userId)
     .maybeSingle();
   if (error || !data || !data.ativo) return null;

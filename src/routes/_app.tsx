@@ -1,7 +1,12 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { whoAmI, logout } from "@/lib/auth.functions";
+import { useState } from "react";
+import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Sidebar,
   SidebarContent,
@@ -66,6 +71,7 @@ function AppLayout() {
   });
 
   if (!me) return null;
+  if (me.deve_trocar_password) return <TrocarPasswordObrigatoria nome={me.nome} />;
 
   const podeLoja = me.acesso_loja || me.papel === "admin";
   const podeOficina = me.acesso_oficina || me.papel === "admin";
@@ -105,7 +111,7 @@ function AppLayout() {
                   <NavItem to="/conta-corrente" icon={BadgeEuro} label="Conta-corrente" />
                   <NavItem to="/catalogo" icon={Package} label="Catálogo" />
                   <NavItem to="/clientes" icon={Users} label="Clientes" />
-                  <NavItem to="/relatorios" icon={BarChart3} label="Relatórios" />
+                  {isAdmin && <NavItem to="/relatorios" icon={BarChart3} label="Relatórios" />}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -163,6 +169,62 @@ function AppLayout() {
         </div>
       </main>
     </SidebarProvider>
+  );
+}
+
+function TrocarPasswordObrigatoria({ nome }: { nome: string }) {
+  const qc = useQueryClient();
+  const change = useServerFn(changeOwnPassword);
+  const [atual, setAtual] = useState("");
+  const [nova, setNova] = useState("");
+  const [confirmar, setConfirmar] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  const m = useMutation({
+    mutationFn: () => change({ data: { atual, nova } }),
+    onSuccess: (r) => {
+      if (!r.ok) {
+        setErro(r.error);
+        return;
+      }
+      qc.invalidateQueries({ queryKey: ["me"] });
+    },
+  });
+
+  const podeSubmeter = atual.length > 0 && nova.length >= 6 && nova === confirmar;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Troca de password obrigatória</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Olá, {nome}. Por segurança, tens de definir uma nova password antes de continuar.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Password atual</Label>
+            <Input type="password" value={atual} onChange={(e) => setAtual(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Nova password (mín. 6 caracteres)</Label>
+            <Input type="password" value={nova} onChange={(e) => setNova(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Confirmar nova password</Label>
+            <Input type="password" value={confirmar} onChange={(e) => setConfirmar(e.target.value)} />
+          </div>
+          {nova.length > 0 && confirmar.length > 0 && nova !== confirmar && (
+            <p className="text-sm text-destructive">As passwords não coincidem.</p>
+          )}
+          {erro && <p className="text-sm text-destructive">{erro}</p>}
+          <Button className="w-full" disabled={!podeSubmeter || m.isPending} onClick={() => m.mutate()}>
+            {m.isPending ? "A guardar…" : "Guardar e continuar"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

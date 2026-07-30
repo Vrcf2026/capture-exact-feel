@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { relatorio } from "@/lib/loja.functions";
@@ -16,6 +16,11 @@ export const Route = createFileRoute("/_app/relatorios")({
       { name: "description", content: "Vendas, pagamentos e saídas por período." },
     ],
   }),
+  beforeLoad: ({ context }) => {
+    if (context.currentUser.papel !== "admin") {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: RelatoriosPage,
 });
 
@@ -90,6 +95,44 @@ function RelatoriosPage() {
         <Metric title="Cheque" value={eur(porMetodo.cheque ?? 0)} />
         <Metric title="Outro" value={eur(porMetodo.outro ?? 0)} />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Caixa por dia</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+                <th className="px-4 py-2">Data</th>
+                <th className="px-4 py-2 text-right">Saldo inicial</th>
+                <th className="px-4 py-2 text-right">Saldo final</th>
+                <th className="px-4 py-2">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.caixas ?? []).length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-6 text-center text-muted-foreground">
+                    Sem caixas no período.
+                  </td>
+                </tr>
+              ) : (
+                (data?.caixas ?? []).map((c) => (
+                  <tr key={c.id} className="border-b border-border/50">
+                    <td className="px-4 py-2">{dt(c.data)}</td>
+                    <td className="px-4 py-2 text-right mono">{eur(c.saldo_inicial)}</td>
+                    <td className="px-4 py-2 text-right mono">
+                      {c.saldo_final != null ? eur(c.saldo_final) : "—"}
+                    </td>
+                    <td className="px-4 py-2 capitalize">{c.estado}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

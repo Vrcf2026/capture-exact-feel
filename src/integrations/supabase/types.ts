@@ -459,6 +459,7 @@ export type Database = {
           acesso_oficina: boolean
           ativo: boolean
           created_at: string
+          deve_trocar_password: boolean
           id: string
           nome: string
           papel: string
@@ -469,6 +470,7 @@ export type Database = {
           acesso_oficina?: boolean
           ativo?: boolean
           created_at?: string
+          deve_trocar_password?: boolean
           id?: string
           nome: string
           papel: string
@@ -479,10 +481,29 @@ export type Database = {
           acesso_oficina?: boolean
           ativo?: boolean
           created_at?: string
+          deve_trocar_password?: boolean
           id?: string
           nome?: string
           papel?: string
           password_hash?: string
+        }
+        Relationships: []
+      }
+      login_tentativas: {
+        Row: {
+          bloqueado_ate: string | null
+          falhas: number
+          nome: string
+        }
+        Insert: {
+          bloqueado_ate?: string | null
+          falhas?: number
+          nome: string
+        }
+        Update: {
+          bloqueado_ate?: string | null
+          falhas?: number
+          nome?: string
         }
         Relationships: []
       }
