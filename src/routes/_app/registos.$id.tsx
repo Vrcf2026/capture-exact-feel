@@ -79,13 +79,16 @@ function RegistoPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link to="/registos" className="text-xs text-muted-foreground inline-flex items-center hover:text-foreground">
+          <Link to="/registos" className="text-xs text-muted-foreground inline-flex items-center hover:text-foreground print:hidden">
             <ArrowLeft className="h-3 w-3 mr-1" /> Voltar
           </Link>
           <h1 className="text-2xl font-semibold mt-1">Registo #{r.numero}</h1>
           <p className="text-sm text-muted-foreground">{dt(r.data)}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            Imprimir
+          </Button>
           {r.anulado ? (
             <Badge variant="destructive">Anulado</Badge>
           ) : r.faturado ? (
@@ -194,7 +197,7 @@ function RegistoPage() {
           </Card>
 
           {!r.anulado && (
-            <div className="space-y-2">
+            <div className="space-y-2 print:hidden">
               <Button
                 className="w-full"
                 variant={r.faturado ? "outline" : "default"}
@@ -244,6 +247,15 @@ function RegistoPage() {
           }}
         />
       )}
+      <div className="hidden print:block mt-6 text-center text-[10px] uppercase tracking-widest text-muted-foreground">
+        Documento interno — sem valor fiscal
+      </div>
+      <style>{`
+        @media print {
+          header, nav, aside { display: none !important; }
+          body { background: white !important; }
+        }
+      `}</style>
     </div>
   );
 }

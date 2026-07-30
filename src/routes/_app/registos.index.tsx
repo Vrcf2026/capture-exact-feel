@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Download } from "lucide-react";
 
 export const Route = createFileRoute("/_app/registos/")({
   head: () => ({
@@ -40,6 +41,7 @@ function RegistosPage() {
   const [ate, setAte] = useState("");
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [incluirAnulados, setIncluirAnulados] = useState(false);
+  const [numero, setNumero] = useState("");
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
 
   const filtros = useMemo(
@@ -52,10 +54,42 @@ function RegistosPage() {
     [desde, ate, clienteId, incluirAnulados],
   );
 
-  const { data = [] } = useQuery({
+  const { data: dataBruta = [] } = useQuery({
     queryKey: ["registos", filtros],
     queryFn: () => listRegistos({ data: filtros }),
   });
+
+  const data = numero.trim()
+    ? dataBruta.filter((r) => String(r.numero).includes(numero.trim()))
+    : dataBruta;
+
+  function exportarCSV() {
+    const linhas = data.map((r) => {
+      const cli = r.cliente as { nome?: string } | null;
+      const utl = r.utilizador as { nome?: string } | null;
+      const vnd = r.vendedor as { nome?: string } | null;
+      const escape = (v: string | number) => {
+        const s = String(v ?? "");
+        return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      return [
+        r.numero,
+        dt(r.data),
+        cli?.nome ?? "Consumidor final",
+        vnd?.nome ?? utl?.nome ?? "",
+        Number(r.total).toFixed(2).replace(".", ","),
+        r.anulado ? "Anulado" : r.faturado ? "Faturado" : "Emitido",
+      ].map(escape).join(";");
+    });
+    const csv = "\ufeff" + ["Nº;Data;Cliente;Vendedor;Total (€);Estado", ...linhas].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vendas_${desde || "inicio"}_a_${ate || "hoje"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="space-y-4">
@@ -66,7 +100,7 @@ function RegistosPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))_auto] items-end rounded-lg border border-border bg-card p-4">
+      <div className="grid gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))_auto_auto_auto] items-end rounded-lg border border-border bg-card p-4">
         <div className="space-y-1.5">
           <Label>Desde</Label>
           <Input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
@@ -85,15 +119,27 @@ function RegistosPage() {
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1.5">
+          <Label>Nº registo</Label>
+          <Input
+            inputMode="numeric"
+            placeholder="ex.: 42"
+            value={numero}
+            onChange={(e) => setNumero(e.target.value.replace(/\D/g, ""))}
+          />
+        </div>
         <div className="flex items-center gap-2 self-end pb-2">
           <Switch checked={incluirAnulados} onCheckedChange={setIncluirAnulados} />
           <Label>Incluir anulados</Label>
         </div>
         <Button
           variant="ghost"
-          onClick={() => { setDesde(""); setAte(""); setClienteId(null); setIncluirAnulados(false); }}
+          onClick={() => { setDesde(""); setAte(""); setClienteId(null); setIncluirAnulados(false); setNumero(""); }}
         >
           Limpar
+        </Button>
+        <Button variant="outline" onClick={exportarCSV} disabled={data.length === 0}>
+          <Download className="h-4 w-4 mr-1" /> CSV
         </Button>
       </div>
 

@@ -7,6 +7,7 @@ import {
   adicionarSaida,
   caixaAberto,
   fecharCaixa,
+  getCaixaDetalhe,
   listCaixa,
   reabrirCaixa,
   removerSaida,
@@ -35,6 +36,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/caixa")({
@@ -52,6 +59,7 @@ function CaixaPage() {
   const { currentUser } = AppRoute.useRouteContext();
   const isAdmin = currentUser.papel === "admin";
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
+  const [detalheId, setDetalheId] = useState<string | null>(null);
   const { data: atual, isLoading } = useQuery({
     queryKey: ["caixa-aberto"],
     queryFn: () => caixaAberto(),
@@ -120,6 +128,7 @@ function CaixaPage() {
                 <TableHead>Aberto</TableHead>
                 <TableHead>Fechado</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="w-16" />
                 {isAdmin && <TableHead className="w-10" />}
               </TableRow>
             </TableHeader>
@@ -140,6 +149,11 @@ function CaixaPage() {
                   </TableCell>
                   <TableCell>
                     {c.estado === "fechado" ? <Badge variant="outline">Fechado</Badge> : <Badge>Aberto</Badge>}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" onClick={() => setDetalheId(c.id)}>
+                      Ver
+                    </Button>
                   </TableCell>
                   {isAdmin && (
                     <TableCell>
@@ -163,7 +177,82 @@ function CaixaPage() {
           </Table>
         </CardContent>
       </Card>
+      {detalheId && <FechoDetalheDialog id={detalheId} onClose={() => setDetalheId(null)} />}
     </div>
+  );
+}
+
+function FechoDetalheDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const { data } = useQuery({
+    queryKey: ["caixa-detalhe", id],
+    queryFn: () => getCaixaDetalhe({ data: { id } }),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-xl print:max-w-none print:shadow-none">
+        <DialogHeader className="print:hidden">
+          <DialogTitle>Fecho de caixa {data ? `— ${dOnly(data.caixa.data)}` : ""}</DialogTitle>
+        </DialogHeader>
+        {!data ? (
+          <p className="text-sm text-muted-foreground">A carregar…</p>
+        ) : (
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div>Data: <strong>{dOnly(data.caixa.data)}</strong></div>
+              <div>Estado: <strong className="capitalize">{data.caixa.estado}</strong></div>
+              <div>Aberto por: {(data.caixa.abertura as { nome?: string } | null)?.nome ?? "—"}</div>
+              <div>Fechado por: {(data.caixa.fecho as { nome?: string } | null)?.nome ?? "—"}</div>
+              <div>Saldo inicial: {eur(data.caixa.saldo_inicial)}</div>
+              <div>Saldo final contado: {data.caixa.saldo_final != null ? eur(data.caixa.saldo_final) : "—"}</div>
+              <div>Saldo esperado: {eur(data.totais.saldoEsperado)}</div>
+              <div>Nº fechos: {data.caixa.num_fechos}</div>
+            </div>
+            {data.caixa.reaberta && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs">
+                Reaberta por {(data.caixa.reabertura as { nome?: string } | null)?.nome ?? "—"}
+                {data.caixa.reaberta_motivo ? ` — ${data.caixa.reaberta_motivo}` : ""}
+              </div>
+            )}
+
+            <div>
+              <p className="font-medium mb-1">Vendas do dia ({data.registos.filter((r) => !r.anulado).length})</p>
+              <div className="space-y-1 max-h-40 overflow-auto">
+                {data.registos.map((r) => (
+                  <div key={r.id} className={`flex justify-between ${r.anulado ? "opacity-50" : ""}`}>
+                    <span>
+                      #{r.numero} — {(r.cliente as { nome?: string } | null)?.nome ?? "Consumidor final"}
+                      {r.anulado && " (anulado)"}
+                    </span>
+                    <span className="mono">{eur(r.total)}</span>
+                  </div>
+                ))}
+                {data.registos.length === 0 && <p className="text-muted-foreground">Sem vendas.</p>}
+              </div>
+            </div>
+
+            <div>
+              <p className="font-medium mb-1">Saídas</p>
+              <div className="space-y-1">
+                {data.saidas.map((s) => (
+                  <div key={s.id} className="flex justify-between">
+                    <span className="capitalize">{s.tipo}: {s.descricao}</span>
+                    <span className="mono">{eur(s.valor)}</span>
+                  </div>
+                ))}
+                {data.saidas.length === 0 && <p className="text-muted-foreground">Sem saídas.</p>}
+              </div>
+            </div>
+
+            <div className="print:hidden">
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
+                Imprimir
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

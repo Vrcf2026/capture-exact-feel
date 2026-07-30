@@ -103,6 +103,31 @@ export const caixaAberto = createServerFn({ method: "GET" }).handler(async () =>
   return { caixa, saidas: saidas ?? [], totais };
 });
 
+export const getCaixaDetalhe = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireLoja } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireLoja();
+    const { data: caixa } = await supabaseAdmin
+      .from("caixa_diario")
+      .select(
+        "*, abertura:utilizadores!utilizador_abertura_id(nome), fecho:utilizadores!utilizador_fecho_id(nome), reabertura:utilizadores!reaberta_por(nome)",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!caixa) throw new Error("Caixa não encontrada.");
+    const [{ data: saidas }, { data: registos }] = await Promise.all([
+      supabaseAdmin.from("saidas_caixa").select("id, tipo, descricao, valor").eq("caixa_id", data.id),
+      supabaseAdmin
+        .from("registos")
+        .select("id, numero, total, anulado, cliente:cliente_id(nome), vendedor:vendedor_id(nome)")
+        .eq("caixa_diario_id", data.id),
+    ]);
+    const totaisDetalhe = await calcularTotais(data.id, Number(caixa.saldo_inicial));
+    return { caixa, totais: totaisDetalhe, saidas: saidas ?? [], registos: registos ?? [] };
+  });
+
 export const abrirCaixa = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({ valor_inicial: z.number().min(0), data: z.string().min(1), ...pinSchema }).parse(d),
