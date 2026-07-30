@@ -183,6 +183,24 @@ export type Database = {
         }
         Relationships: []
       }
+      login_tentativas: {
+        Row: {
+          bloqueado_ate: string | null
+          falhas: number
+          nome: string
+        }
+        Insert: {
+          bloqueado_ate?: string | null
+          falhas?: number
+          nome: string
+        }
+        Update: {
+          bloqueado_ate?: string | null
+          falhas?: number
+          nome?: string
+        }
+        Relationships: []
+      }
       pagamentos: {
         Row: {
           caixa_diario_id: string | null
@@ -235,6 +253,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_liquida_pagamento_id_fkey"
+            columns: ["liquida_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pagamentos_liquidado_por_fkey"
             columns: ["liquidado_por"]
             isOneToOne: false
@@ -246,6 +271,13 @@ export type Database = {
             columns: ["registo_id"]
             isOneToOne: false
             referencedRelation: "registos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]
@@ -486,24 +518,6 @@ export type Database = {
           nome?: string
           papel?: string
           password_hash?: string
-        }
-        Relationships: []
-      }
-      login_tentativas: {
-        Row: {
-          bloqueado_ate: string | null
-          falhas: number
-          nome: string
-        }
-        Insert: {
-          bloqueado_ate?: string | null
-          falhas?: number
-          nome: string
-        }
-        Update: {
-          bloqueado_ate?: string | null
-          falhas?: number
-          nome?: string
         }
         Relationships: []
       }
