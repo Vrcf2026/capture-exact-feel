@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { anularRegisto, getRegisto, marcarFaturado } from "@/lib/loja.functions";
+import { anularRegisto, atualizarRegisto, getRegisto, marcarFaturado, reativarRegisto } from "@/lib/loja.functions";
+import { Route as AppRoute } from "@/routes/_app";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { eur, dt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_app/registos/$id")({
   head: ({ params }) => ({
@@ -39,6 +42,8 @@ export const Route = createFileRoute("/_app/registos/$id")({
 function RegistoPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const { currentUser } = AppRoute.useRouteContext();
+  const isAdmin = currentUser.papel === "admin";
   const { data } = useQuery({
     queryKey: ["registo", id],
     queryFn: () => getRegisto({ data: { id } }),
@@ -46,6 +51,7 @@ function RegistoPage() {
 
   const fatFn = useServerFn(marcarFaturado);
   const anuFn = useServerFn(anularRegisto);
+  const reatFn = useServerFn(reativarRegisto);
   const fatM = useMutation({
     mutationFn: (v: boolean) => fatFn({ data: { id, faturado: v } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["registo", id] }),
@@ -55,12 +61,17 @@ function RegistoPage() {
     mutationFn: () => anuFn({ data: { id, motivo } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["registo", id] }),
   });
+  const reatM = useMutation({
+    mutationFn: () => reatFn({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["registo", id] }),
+  });
+  const [editando, setEditando] = useState(false);
 
   if (!data?.registo) return <div className="text-sm text-muted-foreground">A carregar…</div>;
   const r = data.registo as {
     id: string; numero: number; data: string; total: number; notas: string | null;
     faturado: boolean; anulado: boolean; anulado_motivo: string | null;
-    cliente: { nome?: string; nif?: string | null } | null;
+    cliente: { id?: string; nome?: string; nif?: string | null } | null;
     utilizador: { nome?: string } | null; vendedor: { nome?: string } | null;
   };
 
@@ -88,7 +99,14 @@ function RegistoPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle className="text-base">Itens</CardTitle></CardHeader>
+            <CardHeader className="flex-row items-center justify-between">
+              <CardTitle className="text-base">Itens</CardTitle>
+              {isAdmin && !r.anulado && (
+                <Button size="sm" variant="outline" onClick={() => setEditando(true)}>
+                  Editar
+                </Button>
+              )}
+            </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -153,6 +171,11 @@ function RegistoPage() {
               <CardContent className="text-sm whitespace-pre-wrap">{r.anulado_motivo}</CardContent>
             </Card>
           )}
+          {r.anulado && isAdmin && (
+            <Button variant="outline" onClick={() => reatM.mutate()} disabled={reatM.isPending}>
+              Reativar registo
+            </Button>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -208,6 +231,19 @@ function RegistoPage() {
           )}
         </div>
       </div>
+      {editando && data && (
+        <EditarItensDialog
+          registoId={id}
+          clienteId={r.cliente?.id ?? null}
+          notas={r.notas}
+          itensIniciais={data.itens}
+          onClose={() => setEditando(false)}
+          onSaved={() => {
+            setEditando(false);
+            qc.invalidateQueries({ queryKey: ["registo", id] });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -218,5 +254,112 @@ function Line({ label, value }: { label: string; value: string }) {
       <div className="text-muted-foreground">{label}</div>
       <div className="text-right">{value}</div>
     </div>
+  );
+}
+
+type ItemEdit = { descricao: string; quantidade: number; preco_unitario: number; catalogo_id: string | null };
+
+function EditarItensDialog({
+  registoId,
+  clienteId,
+  notas,
+  itensIniciais,
+  onClose,
+  onSaved,
+}: {
+  registoId: string;
+  clienteId: string | null;
+  notas: string | null;
+  itensIniciais: { descricao: string; quantidade: number; preco_unitario: number; catalogo_id: string | null }[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [itens, setItens] = useState<ItemEdit[]>(
+    itensIniciais.map((i) => ({
+      descricao: i.descricao,
+      quantidade: Number(i.quantidade),
+      preco_unitario: Number(i.preco_unitario),
+      catalogo_id: i.catalogo_id,
+    })),
+  );
+  const [notasState, setNotasState] = useState(notas ?? "");
+
+  const save = useServerFn(atualizarRegisto);
+  const m = useMutation({
+    mutationFn: () =>
+      save({
+        data: { id: registoId, cliente_id: clienteId, notas: notasState || null, itens },
+      }),
+    onSuccess: onSaved,
+  });
+
+  const total = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+
+  function upd(i: number, campo: keyof ItemEdit, valor: string) {
+    setItens((prev) =>
+      prev.map((it, idx) =>
+        idx === i
+          ? { ...it, [campo]: campo === "descricao" ? valor : Number(valor) }
+          : it,
+      ),
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Editar registo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            A edição fica registada (data e utilizador) — usa só para corrigir erros.
+          </p>
+          {itens.map((it, i) => (
+            <div key={i} className="grid grid-cols-[1fr_70px_90px_32px] gap-2 items-center">
+              <Input value={it.descricao} onChange={(e) => upd(i, "descricao", e.target.value)} />
+              <Input
+                type="number" step="1" min="0"
+                value={it.quantidade}
+                onChange={(e) => upd(i, "quantidade", e.target.value)}
+              />
+              <Input
+                type="number" step="0.01" min="0"
+                value={it.preco_unitario}
+                onChange={(e) => upd(i, "preco_unitario", e.target.value)}
+              />
+              <Button
+                size="icon" variant="ghost"
+                onClick={() => setItens((prev) => prev.filter((_, idx) => idx !== i))}
+                disabled={itens.length <= 1}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            size="sm" variant="outline"
+            onClick={() => setItens((prev) => [...prev, { descricao: "", quantidade: 1, preco_unitario: 0, catalogo_id: null }])}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Adicionar item
+          </Button>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Notas</Label>
+            <Textarea rows={2} value={notasState} onChange={(e) => setNotasState(e.target.value)} />
+          </div>
+          <div className="flex justify-end text-sm font-medium">Novo total: {eur(total)}</div>
+          {m.error && <p className="text-sm text-destructive">{(m.error as Error).message}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button
+            onClick={() => m.mutate()}
+            disabled={m.isPending || itens.some((i) => !i.descricao.trim() || i.quantidade <= 0)}
+          >
+            {m.isPending ? "A guardar…" : "Guardar alterações"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

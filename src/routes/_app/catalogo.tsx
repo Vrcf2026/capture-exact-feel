@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { listCatalogo, upsertCatalogo } from "@/lib/admin.functions";
+import { listCatalogo, upsertCatalogo, deleteCatalogo } from "@/lib/admin.functions";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Route as AppRoute } from "@/routes/_app";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/catalogo")({
   head: () => ({
@@ -55,6 +55,12 @@ function CatalogoPage() {
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
 
   const filtered = data.filter((i) => i.nome.toLowerCase().includes(q.toLowerCase()));
+
+  const delFn = useServerFn(deleteCatalogo);
+  const delM = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["catalogo"] }),
+  });
 
   return (
     <div className="space-y-4">
@@ -122,6 +128,15 @@ function CatalogoPage() {
                     <TableCell>
                       <Button size="icon" variant="ghost" onClick={() => setEditing(i)}>
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          if (window.confirm(`Desativar "${i.nome}"?`)) delM.mutate(i.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
                   )}

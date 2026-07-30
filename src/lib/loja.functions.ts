@@ -442,36 +442,158 @@ export const anularRegisto = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const reativarRegisto = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireAdmin();
+    const { error } = await supabaseAdmin
+      .from("registos")
+      .update({ anulado: false, anulado_em: null, anulado_por: null, anulado_motivo: null })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const editarItemSchema = z.object({
+  catalogo_id: z.string().uuid().optional().nullable(),
+  descricao: z.string().trim().min(1),
+  quantidade: z.number().positive(),
+  preco_unitario: z.number().min(0),
+});
+
+export const atualizarRegisto = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        cliente_id: z.string().uuid().optional().nullable(),
+        notas: z.string().trim().optional().nullable(),
+        itens: z.array(editarItemSchema).min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const u = await requireAdmin();
+
+    const total = data.itens.reduce(
+      (acc, it) => acc + Math.round(it.quantidade * it.preco_unitario * 100) / 100,
+      0,
+    );
+
+    const { error: updErr } = await supabaseAdmin
+      .from("registos")
+      .update({
+        cliente_id: data.cliente_id ?? null,
+        notas: data.notas ?? null,
+        total,
+        editado_em: new Date().toISOString(),
+        editado_por: u.id,
+      })
+      .eq("id", data.id);
+    if (updErr) throw new Error(updErr.message);
+
+    const { error: delErr } = await supabaseAdmin.from("registo_itens").delete().eq("registo_id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    const linhas = data.itens.map((it) => ({ registo_id: data.id, ...it }));
+    const { error: insErr } = await supabaseAdmin.from("registo_itens").insert(linhas);
+    if (insErr) throw new Error(insErr.message);
+
+    return { ok: true };
+  });
+
 // ============ CONTA CORRENTE ============
 export const listContaCorrente = createServerFn({ method: "GET" }).handler(async () => {
   const { requireLoja } = await import("./auth.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await requireLoja();
-  const { data } = await supabaseAdmin
+  const { data: dividas } = await supabaseAdmin
     .from("pagamentos")
     .select(
-      `id, valor, data, liquidado, liquidado_em, notas,
+      `id, valor, data, liquidado,
        registo:registo_id(id, numero, data, anulado, cliente:cliente_id(id, nome, nif, telefone))`,
     )
     .eq("metodo", "conta_corrente")
+    .eq("liquidado", false)
     .order("data", { ascending: false });
-  return data ?? [];
+
+  const ids = (dividas ?? []).map((d) => d.id);
+  const { data: amortizacoes } = ids.length
+    ? await supabaseAdmin.from("pagamentos").select("valor, liquida_pagamento_id").in("liquida_pagamento_id", ids)
+    : { data: [] as { valor: number; liquida_pagamento_id: string | null }[] };
+
+  return (dividas ?? [])
+    .filter((d) => !(d.registo as { anulado?: boolean } | null)?.anulado)
+    .map((d) => {
+      const jaPago = (amortizacoes ?? [])
+        .filter((a) => a.liquida_pagamento_id === d.id)
+        .reduce((s, a) => s + Number(a.valor), 0);
+      return { ...d, ja_pago: jaPago, saldo: Math.round((Number(d.valor) - jaPago) * 100) / 100 };
+    })
+    .filter((d) => d.saldo > 0.001);
 });
 
+const liquidarSchema = {
+  pagamento_id: z.string().uuid(),
+  valor: z.number().positive(),
+  metodo: z.enum(["dinheiro", "mb", "transferencia", "cheque", "outro"]),
+  vendedor_id: z.string().uuid(),
+  vendedor_pin: z.string().regex(/^\d{4,8}$/, "PIN inválido."),
+};
+
 export const liquidarPagamento = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) => z.object(liquidarSchema).parse(d))
   .handler(async ({ data }) => {
     const { requireLoja } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const u = await requireLoja();
-    await supabaseAdmin
+    await verificarPinVendedor(data.vendedor_id, data.vendedor_pin);
+
+    const { data: caixa } = await supabaseAdmin
+      .from("caixa_diario")
+      .select("id")
+      .eq("estado", "aberto")
+      .maybeSingle();
+    if (!caixa) throw new Error("Abra a caixa antes de registar pagamentos.");
+
+    const { data: original } = await supabaseAdmin
       .from("pagamentos")
-      .update({
-        liquidado: true,
-        liquidado_em: new Date().toISOString(),
-        liquidado_por: u.id,
-      })
-      .eq("id", data.id);
+      .select("id, registo_id, valor, metodo, liquidado")
+      .eq("id", data.pagamento_id)
+      .maybeSingle();
+    if (!original) throw new Error("Dívida não encontrada.");
+    if (original.metodo !== "conta_corrente") throw new Error("Só é possível liquidar vendas a crédito.");
+    if (original.liquidado) throw new Error("Esta dívida já está totalmente liquidada.");
+
+    const { data: amortizacoes } = await supabaseAdmin
+      .from("pagamentos")
+      .select("valor")
+      .eq("liquida_pagamento_id", data.pagamento_id);
+    const jaPago = (amortizacoes ?? []).reduce((s, a) => s + Number(a.valor), 0);
+    const emDivida = Math.round((Number(original.valor) - jaPago) * 100) / 100;
+    if (emDivida <= 0) throw new Error("Esta dívida já está totalmente liquidada.");
+    if (data.valor > emDivida + 0.001) throw new Error(`O valor excede o saldo em dívida (${emDivida.toFixed(2)} €).`);
+
+    const { error: insErr } = await supabaseAdmin.from("pagamentos").insert({
+      registo_id: original.registo_id,
+      caixa_diario_id: caixa.id,
+      metodo: data.metodo,
+      valor: data.valor,
+      liquidado: true,
+      liquidado_em: new Date().toISOString(),
+      liquidado_por: u.id,
+      vendedor_id: data.vendedor_id,
+      liquida_pagamento_id: data.pagamento_id,
+    });
+    if (insErr) throw new Error(insErr.message);
+
+    if (data.valor >= emDivida - 0.001) {
+      await supabaseAdmin.from("pagamentos").update({ liquidado: true }).eq("id", data.pagamento_id);
+    }
     return { ok: true };
   });
 

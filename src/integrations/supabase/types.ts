@@ -185,6 +185,7 @@ export type Database = {
           caixa_diario_id: string | null
           data: string
           id: string
+          liquida_pagamento_id: string | null
           liquidado: boolean
           liquidado_em: string | null
           liquidado_por: string | null
@@ -192,11 +193,13 @@ export type Database = {
           notas: string | null
           registo_id: string
           valor: number
+          vendedor_id: string | null
         }
         Insert: {
           caixa_diario_id?: string | null
           data?: string
           id?: string
+          liquida_pagamento_id?: string | null
           liquidado?: boolean
           liquidado_em?: string | null
           liquidado_por?: string | null
@@ -204,11 +207,13 @@ export type Database = {
           notas?: string | null
           registo_id: string
           valor: number
+          vendedor_id?: string | null
         }
         Update: {
           caixa_diario_id?: string | null
           data?: string
           id?: string
+          liquida_pagamento_id?: string | null
           liquidado?: boolean
           liquidado_em?: string | null
           liquidado_por?: string | null
@@ -216,6 +221,7 @@ export type Database = {
           notas?: string | null
           registo_id?: string
           valor?: number
+          vendedor_id?: string | null
         }
         Relationships: [
           {

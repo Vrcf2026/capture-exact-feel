@@ -42,6 +42,18 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
     }
   });
 
+export const deleteCatalogo = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireAdmin();
+    // Soft-delete: desativar (não apagar, para preservar histórico de vendas/OS).
+    const { error } = await supabaseAdmin.from("catalogo").update({ ativo: false }).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // ============ CLIENTES ============
 export const listClientes = createServerFn({ method: "GET" }).handler(async () => {
   const { requireUser } = await import("./auth.server");
@@ -76,6 +88,24 @@ export const upsertCliente = createServerFn({ method: "POST" })
     const { data: row, error } = await supabaseAdmin.from("clientes").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id };
+  });
+
+export const deleteCliente = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireLoja } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireLoja();
+    const { count } = await supabaseAdmin
+      .from("registos")
+      .select("id", { count: "exact", head: true })
+      .eq("cliente_id", data.id);
+    if (count && count > 0) {
+      throw new Error(`Este cliente tem ${count} venda(s) associada(s) e não pode ser eliminado.`);
+    }
+    const { error } = await supabaseAdmin.from("clientes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 // ============ VENDEDORES ============

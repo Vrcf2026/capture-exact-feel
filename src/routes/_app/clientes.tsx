@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { listClientes, upsertCliente } from "@/lib/admin.functions";
+import { listClientes, upsertCliente, deleteCliente } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/clientes")({
   head: () => ({
@@ -46,6 +46,13 @@ function ClientesPage() {
       (c.nif ?? "").includes(q) ||
       (c.telefone ?? "").includes(q),
   );
+
+  const delFn = useServerFn(deleteCliente);
+  const delM = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["clientes"] }),
+    onError: (e: Error) => window.alert(e.message),
+  });
 
   return (
     <div className="space-y-4">
@@ -85,6 +92,15 @@ function ClientesPage() {
                   <TableCell>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}>
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        if (window.confirm(`Eliminar "${c.nome}"?`)) delM.mutate(c.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
                 </TableRow>
