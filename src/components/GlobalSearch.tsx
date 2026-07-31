@@ -20,7 +20,7 @@ export function GlobalSearch() {
   const { data } = useQuery({
     queryKey: ["pesquisa-global", debounced],
     queryFn: () => pesquisaGlobal({ data: { q: debounced } }),
-    enabled: debounced.length >= 2,
+    enabled: debounced.length >= 1,
   });
 
   const vazio = useMemo(
@@ -48,7 +48,7 @@ export function GlobalSearch() {
         placeholder="Pesquisar nº venda, nº OS ou cliente…"
         className="h-8 pl-8"
       />
-      {open && debounced.length >= 2 && (
+      {open && debounced.length >= 1 && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-popover shadow-md">
           {vazio && <div className="p-3 text-sm text-muted-foreground">Sem resultados.</div>}
           {data?.registos.length ? (
