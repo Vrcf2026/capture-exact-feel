@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
-export const Route = createFileRoute("/_app/clientes")({
+export const Route = createFileRoute("/_app/clientes/")({
   head: () => ({
     meta: [
       { title: "Clientes — VRCF" },
