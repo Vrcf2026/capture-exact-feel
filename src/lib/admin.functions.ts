@@ -249,7 +249,7 @@ const compSchema = z.object({
   nif: z.string().trim().max(20).optional().nullable(),
   contacto: z.string().trim().max(60).optional().nullable(),
   email: z.string().trim().max(200).optional().nullable(),
-  logo_url: z.string().trim().max(500).optional().nullable(),
+  logo_url: z.string().trim().max(500000).optional().nullable(),
 });
 
 export const updateCompany = createServerFn({ method: "POST" })
