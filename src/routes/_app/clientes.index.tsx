@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -94,7 +94,11 @@ function ClientesPage() {
             ) : (
               filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link to="/clientes/$id" params={{ id: c.id }} className="text-primary hover:underline">
+                      {c.nome}
+                    </Link>
+                  </TableCell>
                   <TableCell className="mono">{c.nif ?? "—"}</TableCell>
                   <TableCell className="mono">{c.telefone ?? "—"}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
