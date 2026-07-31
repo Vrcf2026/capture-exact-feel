@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
 import { Button } from "@/components/ui/button";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +36,8 @@ import {
   ClipboardList,
   BarChart3,
   LogOut,
+  Plus,
+  ShieldCheck,
 } from "lucide-react";
 
 const meQuery = queryOptions({
@@ -123,6 +126,9 @@ function AppLayout() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <NavItem to="/oficina" icon={Wrench} label="Ordens de serviço" />
+                  <NavItem to="/oficina/nova" icon={Plus} label="Nova OS" />
+                  <NavItem to="/oficina/relatorios" icon={BarChart3} label="Relatórios da oficina" />
+                  {isAdmin && <NavItem to="/oficina/admin" icon={ShieldCheck} label="Admin da oficina" />}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -161,6 +167,7 @@ function AppLayout() {
         <header className="border-b border-border h-12 flex items-center gap-2 px-3">
           <SidebarTrigger />
           <div className="text-sm text-muted-foreground">VRCF</div>
+          <div className="ml-auto"><GlobalSearch /></div>
         </header>
         <div className="flex-1 min-w-0 overflow-auto">
           <div className="container-app py-6">

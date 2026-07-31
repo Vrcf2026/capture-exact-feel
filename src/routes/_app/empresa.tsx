@@ -26,6 +26,7 @@ function EmpresaPage() {
     mutationFn: (v: NonNullable<NonNullable<Parameters<typeof updateCompany>[0]>["data"]>) => save({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["company"] }),
   });
+  const [logoErro, setLogoErro] = useState<string | null>(null);
   const [state, setState] = useState<null | {
     nome: string;
     morada: string;
@@ -64,7 +65,42 @@ function EmpresaPage() {
           <Field label="Contacto"><Input value={current.contacto} onChange={(e) => setState({ ...current, contacto: e.target.value })} /></Field>
         </div>
         <Field label="Email"><Input value={current.email} onChange={(e) => setState({ ...current, email: e.target.value })} /></Field>
-        <Field label="URL do logótipo"><Input value={current.logo_url} onChange={(e) => setState({ ...current, logo_url: e.target.value })} /></Field>
+        <Field label="Logótipo">
+          <div className="space-y-2">
+            {current.logo_url ? (
+              <img src={current.logo_url} alt="Logótipo da empresa" className="h-16 w-auto rounded border border-border bg-white p-1 object-contain" />
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (f.size > 300 * 1024) {
+                    setLogoErro("Imagem demasiado grande (máx. 300 KB).");
+                    return;
+                  }
+                  setLogoErro(null);
+                  const dataUrl = await new Promise<string>((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = () => resolve(String(r.result));
+                    r.onerror = () => reject(r.error);
+                    r.readAsDataURL(f);
+                  });
+                  setState({ ...current, logo_url: dataUrl });
+                }}
+              />
+              {current.logo_url ? (
+                <Button type="button" variant="outline" onClick={() => setState({ ...current, logo_url: "" })}>
+                  Remover
+                </Button>
+              ) : null}
+            </div>
+            {logoErro && <p className="text-sm text-destructive">{logoErro}</p>}
+            <p className="text-xs text-muted-foreground">PNG ou JPG, até 300 KB. Aparece nos PDFs.</p>
+          </div>
+        </Field>
         {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
         {m.isSuccess && <div className="text-sm text-primary">Guardado.</div>}
         <Button type="submit" disabled={m.isPending}>{m.isPending ? "A guardar…" : "Guardar"}</Button>

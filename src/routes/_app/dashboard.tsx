@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { resumoHoje } from "@/lib/loja.functions";
+import { resumoOficinaHoje } from "@/lib/geral.functions";
+import { useQuery } from "@tanstack/react-query";
 import { eur } from "@/lib/format";
+import { STATUS_LABELS, type StatusOS } from "@/lib/oficina.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Suspense } from "react";
 
@@ -40,6 +43,11 @@ function Dashboard() {
       <Suspense fallback={<div className="text-sm text-muted-foreground">A carregar…</div>}>
         <Cards />
       </Suspense>
+      <div>
+        <h2 className="text-lg font-semibold">Oficina</h2>
+        <p className="text-sm text-muted-foreground">Ordens de serviço.</p>
+      </div>
+      <CardsOficina />
     </div>
   );
 }
@@ -58,6 +66,42 @@ function Cards() {
       <Metric title="Saídas de caixa" value={eur(totalSaidas)} subtitle={`${data.saidas.length} lançamentos`} />
       <Metric title="Dinheiro recebido" value={eur(porMetodo.dinheiro ?? 0)} />
       <Metric title="Multibanco" value={eur(porMetodo.mb ?? 0)} />
+    </div>
+  );
+}
+
+function CardsOficina() {
+  const { data } = useQuery({
+    queryKey: ["dashboard-oficina"],
+    queryFn: () => resumoOficinaHoje(),
+    staleTime: 30_000,
+  });
+  if (!data) return <div className="text-sm text-muted-foreground">A carregar…</div>;
+  const emCurso = Object.entries(data.porEstado)
+    .filter(([k]) => k !== "entregue")
+    .sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Metric title="OS abertas" value={String(data.abertas)} subtitle={`${data.total} no total`} />
+        <Metric title="Recebidas hoje" value={String(data.recebidasHoje)} />
+        <Metric title="Entregues hoje" value={String(data.entreguesHoje)} />
+        <Metric title="Faturado oficina (hoje)" value={eur(data.faturadoHoje)} />
+      </div>
+      {emCurso.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Por estado</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {emCurso.map(([estado, n]) => (
+              <span key={estado} className="rounded-md border border-border px-2 py-1 text-xs">
+                {STATUS_LABELS[estado as StatusOS] ?? estado}: <b className="mono">{n}</b>
+              </span>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
