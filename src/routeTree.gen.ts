@@ -19,11 +19,11 @@ import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppEmpresaRouteImport } from './routes/_app/empresa'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppContaCorrenteRouteImport } from './routes/_app/conta-corrente'
-import { Route as AppClientesRouteImport } from './routes/_app/clientes'
 import { Route as AppCatalogoRouteImport } from './routes/_app/catalogo'
 import { Route as AppCaixaRouteImport } from './routes/_app/caixa'
 import { Route as AppRegistosIndexRouteImport } from './routes/_app/registos.index'
 import { Route as AppOficinaIndexRouteImport } from './routes/_app/oficina.index'
+import { Route as AppClientesIndexRouteImport } from './routes/_app/clientes.index'
 import { Route as AppRegistosIdRouteImport } from './routes/_app/registos.$id'
 import { Route as AppOficinaRelatoriosRouteImport } from './routes/_app/oficina.relatorios'
 import { Route as AppOficinaNovaRouteImport } from './routes/_app/oficina.nova'
@@ -80,11 +80,6 @@ const AppContaCorrenteRoute = AppContaCorrenteRouteImport.update({
   path: '/conta-corrente',
   getParentRoute: () => AppRoute,
 } as any)
-const AppClientesRoute = AppClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppCatalogoRoute = AppCatalogoRouteImport.update({
   id: '/catalogo',
   path: '/catalogo',
@@ -103,6 +98,11 @@ const AppRegistosIndexRoute = AppRegistosIndexRouteImport.update({
 const AppOficinaIndexRoute = AppOficinaIndexRouteImport.update({
   id: '/oficina/',
   path: '/oficina/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
+  id: '/clientes/',
+  path: '/clientes/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRegistosIdRoute = AppRegistosIdRouteImport.update({
@@ -141,7 +141,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/caixa': typeof AppCaixaRoute
   '/catalogo': typeof AppCatalogoRoute
-  '/clientes': typeof AppClientesRoute
   '/conta-corrente': typeof AppContaCorrenteRoute
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
@@ -153,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/clientes/': typeof AppClientesIndexRoute
   '/oficina/': typeof AppOficinaIndexRoute
   '/registos/': typeof AppRegistosIndexRoute
   '/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
@@ -163,7 +163,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/caixa': typeof AppCaixaRoute
   '/catalogo': typeof AppCatalogoRoute
-  '/clientes': typeof AppClientesRoute
   '/conta-corrente': typeof AppContaCorrenteRoute
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
@@ -175,6 +174,7 @@ export interface FileRoutesByTo {
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/clientes': typeof AppClientesIndexRoute
   '/oficina': typeof AppOficinaIndexRoute
   '/registos': typeof AppRegistosIndexRoute
   '/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
@@ -187,7 +187,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/caixa': typeof AppCaixaRoute
   '/_app/catalogo': typeof AppCatalogoRoute
-  '/_app/clientes': typeof AppClientesRoute
   '/_app/conta-corrente': typeof AppContaCorrenteRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/empresa': typeof AppEmpresaRoute
@@ -199,6 +198,7 @@ export interface FileRoutesById {
   '/_app/oficina/nova': typeof AppOficinaNovaRoute
   '/_app/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/_app/registos/$id': typeof AppRegistosIdRoute
+  '/_app/clientes/': typeof AppClientesIndexRoute
   '/_app/oficina/': typeof AppOficinaIndexRoute
   '/_app/registos/': typeof AppRegistosIndexRoute
   '/_app/oficina/$id/imprimir': typeof AppOficinaIdImprimirRoute
@@ -211,7 +211,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/caixa'
     | '/catalogo'
-    | '/clientes'
     | '/conta-corrente'
     | '/dashboard'
     | '/empresa'
@@ -223,6 +222,7 @@ export interface FileRouteTypes {
     | '/oficina/nova'
     | '/oficina/relatorios'
     | '/registos/$id'
+    | '/clientes/'
     | '/oficina/'
     | '/registos/'
     | '/oficina/$id/imprimir'
@@ -233,7 +233,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/caixa'
     | '/catalogo'
-    | '/clientes'
     | '/conta-corrente'
     | '/dashboard'
     | '/empresa'
@@ -245,6 +244,7 @@ export interface FileRouteTypes {
     | '/oficina/nova'
     | '/oficina/relatorios'
     | '/registos/$id'
+    | '/clientes'
     | '/oficina'
     | '/registos'
     | '/oficina/$id/imprimir'
@@ -256,7 +256,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/caixa'
     | '/_app/catalogo'
-    | '/_app/clientes'
     | '/_app/conta-corrente'
     | '/_app/dashboard'
     | '/_app/empresa'
@@ -268,6 +267,7 @@ export interface FileRouteTypes {
     | '/_app/oficina/nova'
     | '/_app/oficina/relatorios'
     | '/_app/registos/$id'
+    | '/_app/clientes/'
     | '/_app/oficina/'
     | '/_app/registos/'
     | '/_app/oficina/$id/imprimir'
@@ -352,13 +352,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppContaCorrenteRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/clientes': {
-      id: '/_app/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof AppClientesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/catalogo': {
       id: '/_app/catalogo'
       path: '/catalogo'
@@ -385,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/oficina'
       fullPath: '/oficina/'
       preLoaderRoute: typeof AppOficinaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/clientes/': {
+      id: '/_app/clientes/'
+      path: '/clientes'
+      fullPath: '/clientes/'
+      preLoaderRoute: typeof AppClientesIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/registos/$id': {
@@ -435,7 +435,6 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCaixaRoute: typeof AppCaixaRoute
   AppCatalogoRoute: typeof AppCatalogoRoute
-  AppClientesRoute: typeof AppClientesRoute
   AppContaCorrenteRoute: typeof AppContaCorrenteRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmpresaRoute: typeof AppEmpresaRoute
@@ -447,6 +446,7 @@ interface AppRouteChildren {
   AppOficinaNovaRoute: typeof AppOficinaNovaRoute
   AppOficinaRelatoriosRoute: typeof AppOficinaRelatoriosRoute
   AppRegistosIdRoute: typeof AppRegistosIdRoute
+  AppClientesIndexRoute: typeof AppClientesIndexRoute
   AppOficinaIndexRoute: typeof AppOficinaIndexRoute
   AppRegistosIndexRoute: typeof AppRegistosIndexRoute
   AppOficinaIdImprimirRoute: typeof AppOficinaIdImprimirRoute
@@ -456,7 +456,6 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCaixaRoute: AppCaixaRoute,
   AppCatalogoRoute: AppCatalogoRoute,
-  AppClientesRoute: AppClientesRoute,
   AppContaCorrenteRoute: AppContaCorrenteRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppEmpresaRoute: AppEmpresaRoute,
@@ -468,6 +467,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppOficinaNovaRoute: AppOficinaNovaRoute,
   AppOficinaRelatoriosRoute: AppOficinaRelatoriosRoute,
   AppRegistosIdRoute: AppRegistosIdRoute,
+  AppClientesIndexRoute: AppClientesIndexRoute,
   AppOficinaIndexRoute: AppOficinaIndexRoute,
   AppRegistosIndexRoute: AppRegistosIndexRoute,
   AppOficinaIdImprimirRoute: AppOficinaIdImprimirRoute,
