@@ -28,6 +28,7 @@ import { Route as AppRegistosIdRouteImport } from './routes/_app/registos.$id'
 import { Route as AppOficinaRelatoriosRouteImport } from './routes/_app/oficina.relatorios'
 import { Route as AppOficinaNovaRouteImport } from './routes/_app/oficina.nova'
 import { Route as AppOficinaAdminRouteImport } from './routes/_app/oficina.admin'
+import { Route as AppClientesIdRouteImport } from './routes/_app/clientes.$id'
 import { Route as AppOficinaIdIndexRouteImport } from './routes/_app/oficina.$id.index'
 import { Route as AppOficinaIdImprimirRouteImport } from './routes/_app/oficina.$id.imprimir'
 
@@ -125,6 +126,11 @@ const AppOficinaAdminRoute = AppOficinaAdminRouteImport.update({
   path: '/oficina/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientesIdRoute = AppClientesIdRouteImport.update({
+  id: '/clientes/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOficinaIdIndexRoute = AppOficinaIdIndexRouteImport.update({
   id: '/oficina/$id/',
   path: '/oficina/$id/',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
+  '/clientes/$id': typeof AppClientesIdRoute
   '/oficina/admin': typeof AppOficinaAdminRoute
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
+  '/clientes/$id': typeof AppClientesIdRoute
   '/oficina/admin': typeof AppOficinaAdminRoute
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_app/utilizadores': typeof AppUtilizadoresRoute
   '/_app/vendas': typeof AppVendasRoute
   '/_app/vendedores': typeof AppVendedoresRoute
+  '/_app/clientes/$id': typeof AppClientesIdRoute
   '/_app/oficina/admin': typeof AppOficinaAdminRoute
   '/_app/oficina/nova': typeof AppOficinaNovaRoute
   '/_app/oficina/relatorios': typeof AppOficinaRelatoriosRoute
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
+    | '/clientes/$id'
     | '/oficina/admin'
     | '/oficina/nova'
     | '/oficina/relatorios'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
+    | '/clientes/$id'
     | '/oficina/admin'
     | '/oficina/nova'
     | '/oficina/relatorios'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/_app/utilizadores'
     | '/_app/vendas'
     | '/_app/vendedores'
+    | '/_app/clientes/$id'
     | '/_app/oficina/admin'
     | '/_app/oficina/nova'
     | '/_app/oficina/relatorios'
@@ -415,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOficinaAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clientes/$id': {
+      id: '/_app/clientes/$id'
+      path: '/clientes/$id'
+      fullPath: '/clientes/$id'
+      preLoaderRoute: typeof AppClientesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/oficina/$id/': {
       id: '/_app/oficina/$id/'
       path: '/oficina/$id'
@@ -442,6 +461,7 @@ interface AppRouteChildren {
   AppUtilizadoresRoute: typeof AppUtilizadoresRoute
   AppVendasRoute: typeof AppVendasRoute
   AppVendedoresRoute: typeof AppVendedoresRoute
+  AppClientesIdRoute: typeof AppClientesIdRoute
   AppOficinaAdminRoute: typeof AppOficinaAdminRoute
   AppOficinaNovaRoute: typeof AppOficinaNovaRoute
   AppOficinaRelatoriosRoute: typeof AppOficinaRelatoriosRoute
@@ -463,6 +483,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppUtilizadoresRoute: AppUtilizadoresRoute,
   AppVendasRoute: AppVendasRoute,
   AppVendedoresRoute: AppVendedoresRoute,
+  AppClientesIdRoute: AppClientesIdRoute,
   AppOficinaAdminRoute: AppOficinaAdminRoute,
   AppOficinaNovaRoute: AppOficinaNovaRoute,
   AppOficinaRelatoriosRoute: AppOficinaRelatoriosRoute,
