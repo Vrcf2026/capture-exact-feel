@@ -454,9 +454,9 @@ export const anularRegisto = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), motivo: z.string().trim().min(1).max(400) }).parse(d),
   )
   .handler(async ({ data }) => {
-    const { requireLoja } = await import("./auth.server");
+    const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const u = await requireLoja();
+    const u = await requireAdmin();
     await supabaseAdmin
       .from("registos")
       .update({

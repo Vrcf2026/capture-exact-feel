@@ -206,6 +206,7 @@ function RegistoPage() {
               >
                 {r.faturado ? "Marcar como não faturado" : "Marcar como faturado"}
               </Button>
+              {isAdmin && (
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="destructive" className="w-full">Anular</Button>
@@ -230,6 +231,7 @@ function RegistoPage() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
           )}
         </div>
