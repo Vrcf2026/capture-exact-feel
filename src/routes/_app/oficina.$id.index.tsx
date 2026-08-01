@@ -113,6 +113,7 @@ function OSDetalhePage() {
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
   const [gerandoPdf, setGerandoPdf] = useState(false);
+  const [editando, setEditando] = useState(false);
 
   const atualizar = useServerFn(atualizarOS);
   const mudarStatus = useServerFn(mudarStatusOS);
