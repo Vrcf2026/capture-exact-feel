@@ -113,6 +113,7 @@ function OSDetalhePage() {
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
   const [gerandoPdf, setGerandoPdf] = useState(false);
+  const [editando, setEditando] = useState(false);
 
   const atualizar = useServerFn(atualizarOS);
   const mudarStatus = useServerFn(mudarStatusOS);
@@ -272,6 +273,7 @@ function OSDetalhePage() {
   const acessoriosConhecidos = acessoriosAtuais.filter((a) => (ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const jaEntregue = os.status === "entregue";
+  const bloqueado = jaEntregue || !editando;
   const podeEntregar = itens.length === 0 || total === 0 ? true : !!assinaturaEntrega;
 
   function guardarChecklist(novoChecklist: ChecklistItem[]) {
@@ -320,6 +322,16 @@ function OSDetalhePage() {
             </DropdownMenuContent>
           </DropdownMenu>
           {!jaEntregue && (
+            <Button
+              size="sm"
+              variant={editando ? "default" : "outline"}
+              onClick={() => setEditando((v) => !v)}
+            >
+              {editando ? "Concluir edição" : "Editar"}
+            </Button>
+          )}
+          {!jaEntregue && (
+
             <Select value={os.status} onValueChange={(v) => statusM.mutate(v as StatusOS)}>
               <SelectTrigger className="w-52">
                 <SelectValue />
@@ -369,7 +381,7 @@ function OSDetalhePage() {
             <Label>Sintomas relatados pelo cliente</Label>
             <Textarea
               rows={3}
-              disabled={jaEntregue}
+              disabled={bloqueado}
               defaultValue={os.sintomas_cliente ?? ""}
               onBlur={(e) => campoM.mutate({ sintomas_cliente: e.target.value })}
             />
@@ -379,9 +391,9 @@ function OSDetalhePage() {
             <SignaturePad
               value={assinaturaRececao ?? (os.assinatura_rececao as string | null)}
               onChange={setAssinaturaRececao}
-              disabled={jaEntregue}
+              disabled={bloqueado}
             />
-            {!jaEntregue && (
+            {!bloqueado && (
               <div className="flex justify-end">
                 <Button
                   size="sm"
@@ -411,7 +423,7 @@ function OSDetalhePage() {
                     <button
                       key={s}
                       type="button"
-                      disabled={jaEntregue}
+                      disabled={bloqueado}
                       onClick={() => {
                         const novo = checklist.map((it, idx) =>
                           idx === i ? { ...it, status: it.status === s ? null : s } : it,
@@ -435,7 +447,7 @@ function OSDetalhePage() {
                 <Input
                   className="h-8 text-xs mt-1"
                   placeholder="Notas…"
-                  disabled={jaEntregue}
+                  disabled={bloqueado}
                   defaultValue={item.notas}
                   onBlur={(e) => {
                     const novo = checklist.map((it, idx) => (idx === i ? { ...it, notas: e.target.value } : it));
@@ -453,7 +465,7 @@ function OSDetalhePage() {
                 <label key={acc} className="flex items-center gap-2 cursor-pointer text-sm">
                   <Checkbox
                     checked={acessoriosConhecidos.includes(acc)}
-                    disabled={jaEntregue}
+                    disabled={bloqueado}
                     onCheckedChange={() => toggleAcessorio(acc)}
                   />
                   {acc}
@@ -464,7 +476,7 @@ function OSDetalhePage() {
               <Label className="text-xs text-muted-foreground mb-1 block">Outro(s)</Label>
               <Input
                 placeholder="Ex: Disco externo, Pen USB…"
-                disabled={jaEntregue}
+                disabled={bloqueado}
                 defaultValue={acessorioOutro ?? acessoriosOutros.join(", ")}
                 onChange={(e) => setAcessorioOutro(e.target.value)}
                 onBlur={(e) => guardarOutros(e.target.value)}
@@ -483,7 +495,7 @@ function OSDetalhePage() {
           <Label>Verificação técnica</Label>
           <Textarea
             rows={4}
-            disabled={jaEntregue}
+            disabled={bloqueado}
             defaultValue={os.diagnostico_tecnico ?? ""}
             onBlur={(e) => campoM.mutate({ diagnostico_tecnico: e.target.value })}
             placeholder="Resultado da verificação técnica antes de enviar orçamento…"
@@ -504,7 +516,7 @@ function OSDetalhePage() {
                   <TableHead className="w-24 text-right">Qtd.</TableHead>
                   <TableHead className="w-28 text-right">Preço</TableHead>
                   <TableHead className="w-28 text-right">Subtotal</TableHead>
-                  {!jaEntregue && <TableHead className="w-10" />}
+                  {!bloqueado && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -521,7 +533,7 @@ function OSDetalhePage() {
                     <TableCell className="text-right">{it.quantidade}</TableCell>
                     <TableCell className="text-right">{eur(it.preco_unitario)}</TableCell>
                     <TableCell className="text-right">{eur(it.subtotal)}</TableCell>
-                    {!jaEntregue && (
+                    {!bloqueado && (
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => delItemM.mutate(it.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -534,7 +546,7 @@ function OSDetalhePage() {
             </Table>
           </div>
 
-          {!jaEntregue && (
+          {!bloqueado && (
             <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-border">
               <div className="space-y-1">
                 <Label className="text-xs">Do catálogo</Label>
@@ -600,7 +612,7 @@ function OSDetalhePage() {
             <div className="space-y-2">
               <Label>Aprovado por</Label>
               <Input
-                disabled={jaEntregue}
+                disabled={bloqueado}
                 defaultValue={os.aprovado_por ?? ""}
                 onBlur={(e) => campoM.mutate({ aprovado_por: e.target.value })}
               />
@@ -611,7 +623,7 @@ function OSDetalhePage() {
                 <Select
                   value={os.meio_aprovacao ?? ""}
                   onValueChange={(v) => campoM.mutate({ meio_aprovacao: v })}
-                  disabled={jaEntregue}
+                  disabled={bloqueado}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecionar" />
@@ -629,7 +641,7 @@ function OSDetalhePage() {
                 <Label>Data</Label>
                 <Input
                   type="date"
-                  disabled={jaEntregue}
+                  disabled={bloqueado}
                   defaultValue={os.data_aprovacao ? os.data_aprovacao.slice(0, 10) : ""}
                   onBlur={(e) => campoM.mutate({ data_aprovacao: e.target.value || null })}
                 />
@@ -640,7 +652,7 @@ function OSDetalhePage() {
             <Label>Prazo estimado de entrega</Label>
             <Input
               type="date"
-              disabled={jaEntregue}
+              disabled={bloqueado}
               defaultValue={os.prazo_estimado ? os.prazo_estimado.slice(0, 10) : ""}
               onBlur={(e) => campoM.mutate({ prazo_estimado: e.target.value || null })}
             />
@@ -655,7 +667,7 @@ function OSDetalhePage() {
         <CardContent>
           <Textarea
             rows={4}
-            disabled={jaEntregue}
+            disabled={bloqueado}
             defaultValue={os.relatorio_intervencao ?? ""}
             onBlur={(e) => campoM.mutate({ relatorio_intervencao: e.target.value })}
             placeholder="Descrição da intervenção, peças substituídas, testes efetuados…"
@@ -670,14 +682,14 @@ function OSDetalhePage() {
         <CardContent className="space-y-2">
           <Textarea
             rows={3}
-            disabled={jaEntregue}
+            disabled={bloqueado}
             defaultValue={os.observacoes ?? ""}
             onBlur={(e) => campoM.mutate({ observacoes: e.target.value })}
           />
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <Checkbox
               checked={!!os.observacoes_incluir_pdf}
-              disabled={jaEntregue}
+              disabled={bloqueado}
               onCheckedChange={(v) => campoM.mutate({ observacoes_incluir_pdf: !!v })}
             />
             Incluir observações no PDF
@@ -706,7 +718,7 @@ function OSDetalhePage() {
                     {a.nome}
                   </a>
                 )}
-                {!jaEntregue && (
+                {!bloqueado && (
                   <button
                     onClick={() => removerAnexoM.mutate(a.id)}
                     className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -717,7 +729,7 @@ function OSDetalhePage() {
               </div>
             ))}
           </div>
-          {!jaEntregue && (
+          {!bloqueado && (
             <div>
               <Label htmlFor="upload-anexo" className="inline-flex">
                 <Button type="button" variant="outline" size="sm" disabled={aEnviar} asChild>
