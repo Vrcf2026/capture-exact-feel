@@ -36,10 +36,15 @@ export const listCaixa = createServerFn({ method: "GET" }).handler(async () => {
 
 async function calcularTotais(caixaId: string, saldoInicial: number) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: pagamentos } = await supabaseAdmin
+  // Os pagamentos de vendas anuladas não contam para os totais da caixa
+  // (igual ao internal-sales-ledger original).
+  const { data: pagamentosTodos } = await supabaseAdmin
     .from("pagamentos")
-    .select("valor, metodo, liquidado, liquida_pagamento_id")
+    .select("valor, metodo, liquidado, liquida_pagamento_id, registo:registo_id(anulado)")
     .eq("caixa_diario_id", caixaId);
+  const pagamentos = (pagamentosTodos ?? []).filter(
+    (p) => !(p.registo as { anulado?: boolean } | null)?.anulado,
+  );
   const { data: saidas } = await supabaseAdmin
     .from("saidas_caixa")
     .select("valor, tipo")
@@ -308,6 +313,8 @@ export const criarVenda = createServerFn({ method: "POST" })
       .from("caixa_diario")
       .select("id")
       .eq("estado", "aberto")
+      .order("data", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!caixa) throw new Error("Abra a caixa antes de registar vendas.");
 
@@ -577,6 +584,8 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
       .from("caixa_diario")
       .select("id")
       .eq("estado", "aberto")
+      .order("data", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (!caixa) throw new Error("Abra a caixa antes de registar pagamentos.");
 
