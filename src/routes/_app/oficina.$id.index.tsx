@@ -273,6 +273,7 @@ function OSDetalhePage() {
   const acessoriosConhecidos = acessoriosAtuais.filter((a) => (ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const jaEntregue = os.status === "entregue";
+  const bloqueado = jaEntregue || !editando;
   const podeEntregar = itens.length === 0 || total === 0 ? true : !!assinaturaEntrega;
 
   function guardarChecklist(novoChecklist: ChecklistItem[]) {
