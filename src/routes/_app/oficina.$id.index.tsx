@@ -322,6 +322,16 @@ function OSDetalhePage() {
             </DropdownMenuContent>
           </DropdownMenu>
           {!jaEntregue && (
+            <Button
+              size="sm"
+              variant={editando ? "default" : "outline"}
+              onClick={() => setEditando((v) => !v)}
+            >
+              {editando ? "Concluir edição" : "Editar"}
+            </Button>
+          )}
+          {!jaEntregue && (
+
             <Select value={os.status} onValueChange={(v) => statusM.mutate(v as StatusOS)}>
               <SelectTrigger className="w-52">
                 <SelectValue />
