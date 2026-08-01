@@ -22,6 +22,30 @@ const QUOTE_TERMS = [
   "7. RGPD: O cliente autoriza o tratamento dos dados acima para fins exclusivos de gestão deste serviço.",
 ];
 
+// Guardar de forma compatível com telefones/tablets: em iOS/Android o doc.save()
+// pode ser bloqueado, por isso abrimos o blob numa nova janela como alternativa.
+function savePdf(doc: jsPDF, fileName: string) {
+  try {
+    const blob = doc.output("blob") as Blob;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch {
+    try {
+      savePdf(doc, fileName);
+    } catch {
+      const url = URL.createObjectURL(doc.output("blob") as Blob);
+      window.open(url, "_blank");
+    }
+  }
+}
+
 const PDF_TYPE_LABELS: Record<PDFType, string> = {
   diagnostico: "Receção / Diagnóstico",
   orcamento: "Orçamento",
@@ -582,7 +606,7 @@ async function generateQuotePDF(
   doc.text(`Documento gerado em ${today}`, W / 2, y + 6, { align: "center" });
 
   const fileName = `Orcamento_${os.numero}_${os.cliente_nome || "sem_nome"}.pdf`;
-  if (!options?.skipDownload) doc.save(fileName);
+  if (!options?.skipDownload) savePdf(doc, fileName);
   return { blob: doc.output("blob") as Blob, fileName };
 }
 
@@ -671,6 +695,6 @@ function addTermsAndOutput(
   }
   const typeLabel = PDF_TYPE_LABELS[pdfType];
   const fileName = `Ordem_${os.numero}_${typeLabel}_${os.cliente_nome || "sem_nome"}.pdf`;
-  if (!options?.skipDownload) doc.save(fileName);
+  if (!options?.skipDownload) savePdf(doc, fileName);
   return { blob: doc.output("blob") as Blob, fileName };
 }
