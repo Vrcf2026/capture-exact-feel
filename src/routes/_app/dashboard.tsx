@@ -1,12 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { resumoHoje } from "@/lib/loja.functions";
-import { resumoOficinaHoje } from "@/lib/geral.functions";
+import { resumoOficinaHoje, alertasPainel } from "@/lib/geral.functions";
 import { useQuery } from "@tanstack/react-query";
 import { eur } from "@/lib/format";
 import { STATUS_LABELS, type StatusOS } from "@/lib/oficina.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, Info, Wallet, Wrench, CircleDollarSign } from "lucide-react";
 import { Suspense } from "react";
+
 
 function hojeRange() {
   const inicio = new Date();
