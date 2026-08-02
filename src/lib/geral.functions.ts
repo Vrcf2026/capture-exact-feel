@@ -134,3 +134,83 @@ export const fichaCliente = createServerFn({ method: "POST" })
       emDivida,
     };
   });
+
+// ============ Alertas do Painel ============
+export const alertasPainel = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireUser } = await import("./auth.server");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const u = await requireUser();
+
+  const podeLoja = u.acesso_loja || u.papel === "admin";
+  const podeOficina = u.acesso_oficina || u.papel === "admin";
+
+  const hoje = new Date();
+  const hojeISO = hoje.toISOString().slice(0, 10);
+
+  // --- Caixa ---
+  let caixaAbertaHoje = false;
+  let caixaAnteriorAberta: { id: string; data: string } | null = null;
+  if (podeLoja) {
+    const { data: abertas } = await supabaseAdmin
+      .from("caixa_diario")
+      .select("id, data, estado")
+      .eq("estado", "aberto")
+      .order("data", { ascending: false });
+    for (const c of abertas ?? []) {
+      if (c.data === hojeISO) caixaAbertaHoje = true;
+      else if (!caixaAnteriorAberta) caixaAnteriorAberta = { id: c.id, data: c.data };
+    }
+  }
+
+  // --- OS pendentes ---
+  let osProntas = 0;
+  let osParadas = 0;
+  let osAguardaAprovacao = 0;
+  const LIMITE_DIAS = 7;
+  if (podeOficina) {
+    const { data: rows } = await supabaseAdmin
+      .from("work_orders")
+      .select("id, status, data_rececao, updated_at")
+      .neq("status", "entregue");
+    const limite = Date.now() - LIMITE_DIAS * 86400000;
+    for (const r of rows ?? []) {
+      if (r.status === "concluido") osProntas += 1;
+      if (r.status === "orcamento") osAguardaAprovacao += 1;
+      const ref = new Date(r.updated_at ?? r.data_rececao).getTime();
+      if (ref < limite) osParadas += 1;
+    }
+  }
+
+  // --- Dívidas (pagamentos a crédito não liquidados) ---
+  let dividaTotal = 0;
+  let dividaClientes = 0;
+  if (podeLoja) {
+    const { data: pend } = await supabaseAdmin
+      .from("pagamentos")
+      .select("valor, registo_id, registos!inner(anulado, cliente_id)")
+      .eq("liquidado", false);
+    const clientes = new Set<string>();
+    for (const p of (pend ?? []) as unknown as {
+      valor: number;
+      registos: { anulado: boolean; cliente_id: string | null } | null;
+    }[]) {
+      if (p.registos?.anulado) continue;
+      dividaTotal += Number(p.valor);
+      if (p.registos?.cliente_id) clientes.add(p.registos.cliente_id);
+    }
+    dividaClientes = clientes.size;
+  }
+
+  return {
+    podeLoja,
+    podeOficina,
+    caixaAbertaHoje,
+    caixaAnteriorAberta,
+    osProntas,
+    osParadas,
+    osAguardaAprovacao,
+    limiteDias: LIMITE_DIAS,
+    dividaTotal,
+    dividaClientes,
+  };
+});
