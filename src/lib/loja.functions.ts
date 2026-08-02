@@ -150,6 +150,42 @@ export const abrirCaixa = createServerFn({ method: "POST" })
       .eq("estado", "aberto")
       .maybeSingle();
     if (existente) throw new Error("Já existe uma caixa aberta para esse dia.");
+
+    // Regra: não se abre um novo dia com dias anteriores em aberto.
+    // Excepção: se o dia anterior não teve movimento (vendas = 0 e sem saídas),
+    // é fechado automaticamente com o mesmo saldo.
+    const { data: anteriores } = await supabaseAdmin
+      .from("caixa_diario")
+      .select("id, data, saldo_inicial")
+      .eq("estado", "aberto")
+      .lt("data", data.data)
+      .order("data", { ascending: true });
+
+    for (const ant of anteriores ?? []) {
+      const [{ data: regs }, { data: sds }] = await Promise.all([
+        supabaseAdmin.from("registos").select("id").eq("caixa_diario_id", ant.id).eq("anulado", false).limit(1),
+        supabaseAdmin.from("saidas_caixa").select("id").eq("caixa_id", ant.id).limit(1),
+      ]);
+      const semMovimento = (regs?.length ?? 0) === 0 && (sds?.length ?? 0) === 0;
+      if (!semMovimento) {
+        throw new Error(
+          `A caixa do dia ${ant.data} continua aberta e tem movimentos. Faz o fecho desse dia antes de abrir um novo.`,
+        );
+      }
+      await supabaseAdmin
+        .from("caixa_diario")
+        .update({
+          estado: "fechado",
+          saldo_final: Number(ant.saldo_inicial),
+          fechado_em: new Date().toISOString(),
+          utilizador_fecho_id: u.id,
+          num_fechos: 1,
+          observacoes: "Fecho automático — dia sem vendas.",
+        })
+        .eq("id", ant.id);
+    }
+
+
     const { error } = await supabaseAdmin.from("caixa_diario").insert({
       data: data.data,
       saldo_inicial: data.valor_inicial,
