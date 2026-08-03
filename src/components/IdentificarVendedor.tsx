@@ -119,11 +119,24 @@ export function useVendedorObrigatorio() {
           )}
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
           <Button onClick={confirmarAcesso} disabled={aConfirmar || vendedores.length === 0} className="w-full">
             {aConfirmar ? "A confirmar…" : "Confirmar"}
           </Button>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              setErro(null);
+              setPin("");
+              if (vendedorId && vendedorPin) setOpen(false);
+              else navigate({ to: "/dashboard" });
+            }}
+          >
+            {vendedorId && vendedorPin ? "Cancelar" : "Sair"}
+          </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
