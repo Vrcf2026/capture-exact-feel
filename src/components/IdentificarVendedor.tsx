@@ -80,10 +80,11 @@ export function useVendedorObrigatorio() {
   const dialog = (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="sm:max-w-sm"
+        className="sm:max-w-sm [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+
         <DialogHeader>
           <DialogTitle>Identificar vendedor</DialogTitle>
         </DialogHeader>
