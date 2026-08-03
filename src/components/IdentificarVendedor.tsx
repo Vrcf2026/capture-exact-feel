@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { confirmarVendedorAcesso, listVendedores } from "@/lib/admin.functions";
@@ -26,6 +27,7 @@ import {
  * vendedor + PIN, e fica lembrado (para esta página) até se clicar em "Trocar".
  */
 export function useVendedorObrigatorio() {
+  const navigate = useNavigate();
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
   const [vendedorPin, setVendedorPin] = useState<string | null>(null);
@@ -80,10 +82,11 @@ export function useVendedorObrigatorio() {
   const dialog = (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="sm:max-w-sm"
+        className="sm:max-w-sm [&>button]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+
         <DialogHeader>
           <DialogTitle>Identificar vendedor</DialogTitle>
         </DialogHeader>
@@ -118,11 +121,24 @@ export function useVendedorObrigatorio() {
           )}
           {erro && <p className="text-sm text-destructive">{erro}</p>}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-col">
           <Button onClick={confirmarAcesso} disabled={aConfirmar || vendedores.length === 0} className="w-full">
             {aConfirmar ? "A confirmar…" : "Confirmar"}
           </Button>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              setErro(null);
+              setPin("");
+              if (vendedorId && vendedorPin) setOpen(false);
+              else navigate({ to: "/dashboard" });
+            }}
+          >
+            {vendedorId && vendedorPin ? "Cancelar" : "Sair"}
+          </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
