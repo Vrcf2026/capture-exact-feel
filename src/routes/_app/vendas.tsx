@@ -137,9 +137,9 @@ function NovaVendaPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle className="text-base">Itens</CardTitle>
-              <div className="flex items-center gap-2">
+            <CardHeader className="flex-row items-center gap-3">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-base">Itens</CardTitle>
                 <Select onValueChange={adicionarDoCatalogo}>
                   <SelectTrigger className="w-[220px]">
                     <SelectValue placeholder="Adicionar do catálogo…" />
@@ -152,11 +152,9 @@ function NovaVendaPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={adicionarLivre}>
-                  <Plus className="h-4 w-4 mr-1" /> Livre
-                </Button>
               </div>
             </CardHeader>
+
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
