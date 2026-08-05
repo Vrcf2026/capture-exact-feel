@@ -61,7 +61,10 @@ function NovaVendaPage() {
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
-  const [itens, setItens] = useState<Item[]>([]);
+  const [itens, setItens] = useState<Item[]>([
+    { key: uid(), catalogo_id: null, descricao: "", quantidade: 1, preco_unitario: 0 },
+  ]);
+
   const [pags, setPags] = useState<Pag[]>([{ key: uid(), metodo: "dinheiro", valor: 0 }]);
   const [notas, setNotas] = useState("");
 
