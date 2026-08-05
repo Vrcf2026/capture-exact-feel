@@ -61,7 +61,10 @@ function NovaVendaPage() {
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
-  const [itens, setItens] = useState<Item[]>([]);
+  const [itens, setItens] = useState<Item[]>([
+    { key: uid(), catalogo_id: null, descricao: "", quantidade: 1, preco_unitario: 0 },
+  ]);
+
   const [pags, setPags] = useState<Pag[]>([{ key: uid(), metodo: "dinheiro", valor: 0 }]);
   const [notas, setNotas] = useState("");
 
@@ -137,9 +140,9 @@ function NovaVendaPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <CardTitle className="text-base">Itens</CardTitle>
-              <div className="flex items-center gap-2">
+            <CardHeader className="flex-row items-center gap-3">
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-base">Itens</CardTitle>
                 <Select onValueChange={adicionarDoCatalogo}>
                   <SelectTrigger className="w-[220px]">
                     <SelectValue placeholder="Adicionar do catálogo…" />
@@ -152,11 +155,9 @@ function NovaVendaPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={adicionarLivre}>
-                  <Plus className="h-4 w-4 mr-1" /> Livre
-                </Button>
               </div>
             </CardHeader>
+
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
@@ -169,14 +170,8 @@ function NovaVendaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {itens.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                        Sem itens.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    itens.map((it, idx) => (
+                  {itens.map((it, idx) => (
+
                       <TableRow key={it.key}>
                         <TableCell>
                           <Input
@@ -218,11 +213,16 @@ function NovaVendaPage() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
+              <div className="border-t border-border p-3">
+                <Button size="sm" variant="outline" onClick={adicionarLivre}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar linha
+                </Button>
+              </div>
             </CardContent>
+
           </Card>
 
           <Card>
