@@ -48,10 +48,8 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-xl mb-3">
-            V
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">VRCF</h1>
+          <img src="/vrcf-logo.png" alt="VRCF Informática & Segurança" className="mx-auto mb-4 h-auto w-full max-w-72 object-contain" />
+          <h1 className="sr-only">VRCF</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Gestão de loja e oficina
           </p>

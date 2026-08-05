@@ -7,6 +7,16 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  vite: {
+    resolve: {
+      alias: {
+        // A app usa autenticação custom por cookie. Se a integração automática
+        // voltar a importar o auth-attacher gerado, resolve sempre para o
+        // middleware neutro e nunca inicializa o cliente auth no browser.
+        "@/integrations/supabase/auth-attacher": "/src/lib/custom-auth-attacher.ts",
+      },
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
