@@ -167,14 +167,8 @@ function NovaVendaPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {itens.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                        Sem itens.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    itens.map((it, idx) => (
+                  {itens.map((it, idx) => (
+
                       <TableRow key={it.key}>
                         <TableCell>
                           <Input
