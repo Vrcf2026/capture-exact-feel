@@ -210,11 +210,16 @@ function NovaVendaPage() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
+              <div className="border-t border-border p-3">
+                <Button size="sm" variant="outline" onClick={adicionarLivre}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar linha
+                </Button>
+              </div>
             </CardContent>
+
           </Card>
 
           <Card>
