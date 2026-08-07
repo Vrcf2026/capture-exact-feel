@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Save, Check } from "lucide-react";
+import { Save, Check, User, Stethoscope, ClipboardList } from "lucide-react";
 import {
   criarOS,
   DEFAULT_CHECKLIST,
@@ -266,7 +266,7 @@ function NovaOSPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-3">
-            Cliente e equipamento
+            <User className="h-4 w-4 text-primary" /> Dados do cliente e equipamento
             <label className="flex items-center gap-2 text-sm font-normal text-muted-foreground cursor-pointer">
               <Checkbox checked={clienteRapido} onCheckedChange={(v) => setClienteRapido(!!v)} />
               Cliente rápido
@@ -331,7 +331,7 @@ function NovaOSPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-3">
-            Diagnóstico inicial
+            <Stethoscope className="h-4 w-4 text-primary" /> Diagnóstico inicial
             <BotaoGuardar onGuardar={guardarRascunho} />
           </CardTitle>
         </CardHeader>
@@ -341,9 +341,13 @@ function NovaOSPage() {
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Assinatura do cliente (aceitação de termos) *</Label>
-            <SignaturePad value={assinatura} onChange={setAssinatura} />
+            <SignaturePad
+              label="Assinatura do cliente (aceitação de termos) *"
+              value={assinatura}
+              onChange={setAssinatura}
+            />
           </div>
+
 
         </CardContent>
       </Card>
@@ -351,7 +355,7 @@ function NovaOSPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-3">
-            Checklist de entrada
+            <ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada
             <BotaoGuardar onGuardar={guardarRascunho} />
           </CardTitle>
         </CardHeader>

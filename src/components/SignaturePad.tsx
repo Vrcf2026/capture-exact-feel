@@ -1,17 +1,24 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Eraser } from "lucide-react";
+import { Eraser, Lock, PenLine } from "lucide-react";
 
 interface SignaturePadProps {
   value?: string | null;
   onChange: (dataUrl: string) => void;
   disabled?: boolean;
+  /** Título do quadro da assinatura (ex: "Assinatura do Cliente (Aceitação de Termos)"). */
+  label?: string;
+  /** Chamado ao clicar em "Gravar" — grava e bloqueia a assinatura. */
+  onSave?: () => void;
 }
 
-export function SignaturePad({ value, onChange, disabled }: SignaturePadProps) {
+export function SignaturePad({ value, onChange, disabled, label, onSave }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const [empty, setEmpty] = useState(!value);
+  const [bloqueada, setBloqueada] = useState(false);
+
+  const readOnly = disabled || bloqueada;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -39,7 +46,7 @@ export function SignaturePad({ value, onChange, disabled }: SignaturePadProps) {
   }
 
   function start(e: React.MouseEvent | React.TouchEvent) {
-    if (disabled) return;
+    if (readOnly) return;
     drawing.current = true;
     const ctx = canvasRef.current!.getContext("2d")!;
     const { x, y } = pos(e);
@@ -47,7 +54,7 @@ export function SignaturePad({ value, onChange, disabled }: SignaturePadProps) {
     ctx.moveTo(x, y);
   }
   function move(e: React.MouseEvent | React.TouchEvent) {
-    if (!drawing.current || disabled) return;
+    if (!drawing.current || readOnly) return;
     e.preventDefault();
     const ctx = canvasRef.current!.getContext("2d")!;
     ctx.lineWidth = 2;
@@ -70,16 +77,43 @@ export function SignaturePad({ value, onChange, disabled }: SignaturePadProps) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     setEmpty(true);
+    setBloqueada(false);
     onChange("");
+  }
+
+  function gravar() {
+    if (canvasRef.current) onChange(canvasRef.current.toDataURL("image/png"));
+    onSave?.();
+    setBloqueada(true);
   }
 
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        {label && (
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <PenLine className="h-3.5 w-3.5 text-primary" />
+            {label}
+          </span>
+        )}
+        {!disabled && (
+          <div className="ml-auto flex items-center gap-2">
+            <Button type="button" size="sm" className="h-7 gap-1.5 text-xs" onClick={gravar} disabled={empty}>
+              <Lock className="h-3.5 w-3.5" /> Gravar
+            </Button>
+            <Button type="button" size="sm" variant="ghost" className="h-7 gap-1.5 text-xs" onClick={limpar}>
+              <Eraser className="h-3.5 w-3.5" /> Limpar
+            </Button>
+          </div>
+        )}
+      </div>
       <canvas
         ref={canvasRef}
         width={500}
         height={160}
-        className="w-full h-40 rounded-md border border-border bg-white touch-none"
+        className={`w-full h-40 rounded-md border border-dashed border-border bg-white touch-none ${
+          readOnly ? "cursor-not-allowed" : "cursor-crosshair"
+        }`}
         onMouseDown={start}
         onMouseMove={move}
         onMouseUp={end}
@@ -88,16 +122,13 @@ export function SignaturePad({ value, onChange, disabled }: SignaturePadProps) {
         onTouchMove={move}
         onTouchEnd={end}
       />
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {empty ? "Assinar em cima, com o dedo ou o rato." : "Assinatura registada."}
-        </span>
-        {!disabled && (
-          <Button type="button" variant="ghost" size="sm" onClick={limpar}>
-            <Eraser className="h-3.5 w-3.5 mr-1" /> Limpar
-          </Button>
-        )}
-      </div>
+      <span className="block text-xs text-muted-foreground">
+        {bloqueada
+          ? "Assinatura gravada e bloqueada. Clique em «Limpar» para assinar de novo."
+          : empty
+            ? "Assine acima e clique em «Gravar» para bloquear."
+            : "Assinatura registada — clique em «Gravar» para bloquear."}
+      </span>
     </div>
   );
 }
