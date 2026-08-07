@@ -64,7 +64,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Upload, X, Paperclip, FileDown, ChevronDown } from "lucide-react";
+import {
+  Plus, Trash2, Upload, X, Paperclip, FileDown, ChevronDown, User, Stethoscope,
+  ClipboardList, Wrench, Euro, FileText, MessageSquare, Images, PackageCheck, Camera,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_app/oficina/$id/")({
   head: () => ({ meta: [{ title: "Ordem de serviço — VRCF" }] }),
@@ -350,7 +353,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Dados do cliente e equipamento</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4 text-primary" /> Dados do cliente e equipamento</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-4 text-sm">
           <div>
@@ -374,7 +377,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Diagnóstico inicial</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Stethoscope className="h-4 w-4 text-primary" /> Diagnóstico inicial</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -387,31 +390,20 @@ function OSDetalhePage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Assinatura do cliente (aceitação de termos)</Label>
             <SignaturePad
+              label="Assinatura do cliente (aceitação de termos)"
               value={assinaturaRececao ?? (os.assinatura_rececao as string | null)}
               onChange={setAssinaturaRececao}
+              onSave={() => assinarRecM.mutate()}
               disabled={bloqueado}
             />
-            {!bloqueado && (
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => assinarRecM.mutate()}
-                  disabled={assinaturaRececao === null}
-                >
-                  Guardar assinatura
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Checklist de entrada</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
@@ -489,7 +481,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Diagnóstico técnico</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /> Diagnóstico técnico</CardTitle>
         </CardHeader>
         <CardContent>
           <Label>Verificação técnica</Label>
@@ -505,7 +497,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Orçamento e autorização</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Euro className="h-4 w-4 text-primary" /> Orçamento e autorização</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-border">
@@ -662,7 +654,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Relatório de intervenção</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Relatório de intervenção</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -677,7 +669,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Observações</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4 text-primary" /> Observações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <Textarea
@@ -699,7 +691,7 @@ function OSDetalhePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Anexos / fotos</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2"><Images className="h-4 w-4 text-primary" /> Anexos / fotos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -734,7 +726,7 @@ function OSDetalhePage() {
               <Label htmlFor="upload-anexo" className="inline-flex">
                 <Button type="button" variant="outline" size="sm" disabled={aEnviar} asChild>
                   <span>
-                    <Upload className="h-4 w-4 mr-1" /> {aEnviar ? "A enviar…" : "Adicionar fotos"}
+                    <Upload className="h-4 w-4 mr-1" /> {aEnviar ? "A enviar…" : "Adicionar ficheiros"}
                   </span>
                 </Button>
               </Label>
@@ -746,6 +738,24 @@ function OSDetalhePage() {
                 className="hidden"
                 onChange={(e) => e.target.files && uploadAnexoM.mutate(e.target.files)}
               />
+              <Label htmlFor="tirar-foto" className="inline-flex ml-2">
+                <Button type="button" variant="outline" size="sm" disabled={aEnviar} asChild>
+                  <span>
+                    <Camera className="h-4 w-4 mr-1" /> Tirar foto
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="tirar-foto"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => e.target.files && uploadAnexoM.mutate(e.target.files)}
+              />
+              <span className="ml-2 text-xs text-muted-foreground">
+                Imagens são comprimidas automaticamente.
+              </span>
             </div>
           )}
         </CardContent>
@@ -754,7 +764,7 @@ function OSDetalhePage() {
       {!jaEntregue ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Controlo de qualidade e entrega</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><PackageCheck className="h-4 w-4 text-primary" /> Controlo de qualidade e entrega</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -798,8 +808,11 @@ function OSDetalhePage() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Assinatura de levantamento (conforme)</Label>
-              <SignaturePad value={assinaturaEntrega} onChange={setAssinaturaEntrega} />
+              <SignaturePad
+                label="Assinatura de levantamento (conforme)"
+                value={assinaturaEntrega}
+                onChange={setAssinaturaEntrega}
+              />
             </div>
 
             {entregarM.isError && (
@@ -851,7 +864,7 @@ function OSDetalhePage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Entregue</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2"><PackageCheck className="h-4 w-4 text-primary" /> Entregue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p className="text-muted-foreground">
