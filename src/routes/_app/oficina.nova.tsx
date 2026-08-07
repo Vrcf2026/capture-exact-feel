@@ -2,9 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Save, Check, User, Stethoscope, ClipboardList } from "lucide-react";
+import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X } from "lucide-react";
 import {
   criarOS,
+  uploadAnexoOS,
   DEFAULT_CHECKLIST,
   ACESSORIOS_OPTIONS,
   type ChecklistItem,
@@ -64,6 +65,30 @@ interface Rascunho {
   assinatura: string;
 }
 
+/** Reduz e comprime a foto antes de a guardar como anexo. */
+function ficheiroParaDataUrlReduzido(file: File, maxDim = 1600, qualidade = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Erro a ler o ficheiro."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Ficheiro de imagem inválido."));
+      img.onload = () => {
+        const escala = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * escala);
+        const h = Math.round(img.height * escala);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 /** Botão "disquete": grava o rascunho deste quadro no dispositivo. */
 function BotaoGuardar({ onGuardar }: { onGuardar: () => void }) {
   const [ok, setOk] = useState(false);
@@ -90,6 +115,7 @@ function NovaOSPage() {
   const navigate = useNavigate();
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const criar = useServerFn(criarOS);
+  const enviarAnexo = useServerFn(uploadAnexoOS);
 
   const [clienteRapido, setClienteRapido] = useState(false);
   const [clienteId, setClienteId] = useState<string | null>(null);
@@ -103,6 +129,9 @@ function NovaOSPage() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
   const [acessorios, setAcessorios] = useState<string[]>([]);
   const [assinatura, setAssinatura] = useState("");
+  // Fotos tiradas na receção (ex: dobradiça partida) — enviadas ao criar a OS.
+  const [fotos, setFotos] = useState<{ nome: string; dataUrl: string }[]>([]);
+  const [aProcessarFotos, setAProcessarFotos] = useState(false);
   const [guardadoEm, setGuardadoEm] = useState<string | null>(null);
   const [restaurado, setRestaurado] = useState(false);
 
@@ -176,9 +205,24 @@ function NovaOSPage() {
     }
   }
 
+  async function adicionarFotos(files: FileList) {
+    setAProcessarFotos(true);
+    try {
+      const novas: { nome: string; dataUrl: string }[] = [];
+      for (const file of Array.from(files)) {
+        novas.push({ nome: file.name || `foto-${Date.now()}.jpg`, dataUrl: await ficheiroParaDataUrlReduzido(file) });
+      }
+      setFotos((prev) => [...prev, ...novas]);
+    } catch {
+      /* ficheiro inválido — ignora */
+    } finally {
+      setAProcessarFotos(false);
+    }
+  }
+
   const m = useMutation({
-    mutationFn: () =>
-      criar({
+    mutationFn: async () => {
+      const r = await criar({
         data: {
           cliente_rapido: clienteRapido,
           cliente_id: clienteId,
@@ -193,7 +237,12 @@ function NovaOSPage() {
           acessorios,
           assinatura_rececao: assinatura || null,
         },
-      }),
+      });
+      for (const f of fotos) {
+        await enviarAnexo({ data: { work_order_id: r.id, nome_ficheiro: f.nome, data_url: f.dataUrl } });
+      }
+      return r;
+    },
     onSuccess: (r) => {
       limparRascunho();
       navigate({ to: "/oficina/$id", params: { id: r.id } });
@@ -411,6 +460,67 @@ function NovaOSPage() {
                   {acc}
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2 border-t border-border">
+            <Label>Fotos da receção</Label>
+            <p className="text-xs text-muted-foreground">
+              Registe danos visíveis na entrada (ex: dobradiça partida, ecrã riscado).
+            </p>
+            {fotos.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {fotos.map((f, i) => (
+                  <div key={`${f.nome}-${i}`} className="relative group">
+                    <img
+                      src={f.dataUrl}
+                      alt={f.nome}
+                      className="h-24 w-full object-cover rounded-md border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFotos((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Label htmlFor="nova-os-ficheiros" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" disabled={aProcessarFotos} asChild>
+                  <span>
+                    <Upload className="h-4 w-4 mr-1" />
+                    {aProcessarFotos ? "A processar…" : "Adicionar fotos"}
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="nova-os-ficheiros"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && adicionarFotos(e.target.files)}
+              />
+              <Label htmlFor="nova-os-camara" className="inline-flex">
+                <Button type="button" variant="outline" size="sm" disabled={aProcessarFotos} asChild>
+                  <span>
+                    <Camera className="h-4 w-4 mr-1" /> Tirar foto
+                  </span>
+                </Button>
+              </Label>
+              <input
+                id="nova-os-camara"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => e.target.files && adicionarFotos(e.target.files)}
+              />
+              <span className="text-xs text-muted-foreground">Imagens comprimidas automaticamente.</span>
             </div>
           </div>
         </CardContent>
