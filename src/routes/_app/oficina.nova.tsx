@@ -317,10 +317,26 @@ function NovaOSPage() {
               <Input value={pin} onChange={(e) => setPin(e.target.value)} />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-3">
+            Diagnóstico inicial
+            <BotaoGuardar onGuardar={guardarRascunho} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Sintomas relatados pelo cliente *</Label>
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
           </div>
+          <div className="space-y-2">
+            <Label>Assinatura do cliente (aceitação de termos) *</Label>
+            <SignaturePad value={assinatura} onChange={setAssinatura} />
+          </div>
+
         </CardContent>
       </Card>
 
