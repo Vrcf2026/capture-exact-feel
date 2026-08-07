@@ -341,9 +341,13 @@ function NovaOSPage() {
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Assinatura do cliente (aceitação de termos) *</Label>
-            <SignaturePad value={assinatura} onChange={setAssinatura} />
+            <SignaturePad
+              label="Assinatura do cliente (aceitação de termos) *"
+              value={assinatura}
+              onChange={setAssinatura}
+            />
           </div>
+
 
         </CardContent>
       </Card>
