@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SignaturePad } from "@/components/SignaturePad";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -60,6 +61,7 @@ interface Rascunho {
   sintomas: string;
   checklist: ChecklistItem[];
   acessorios: string[];
+  assinatura: string;
 }
 
 /** Botão "disquete": grava o rascunho deste quadro no dispositivo. */
@@ -100,6 +102,7 @@ function NovaOSPage() {
   const [sintomas, setSintomas] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
   const [acessorios, setAcessorios] = useState<string[]>([]);
+  const [assinatura, setAssinatura] = useState("");
   const [guardadoEm, setGuardadoEm] = useState<string | null>(null);
   const [restaurado, setRestaurado] = useState(false);
 
@@ -122,6 +125,7 @@ function NovaOSPage() {
         setSintomas(d.sintomas ?? "");
         if (Array.isArray(d.checklist) && d.checklist.length > 0) setChecklist(d.checklist);
         if (Array.isArray(d.acessorios)) setAcessorios(d.acessorios);
+        setAssinatura(d.assinatura ?? "");
         setRestaurado(true);
       }
     } catch {
@@ -143,6 +147,7 @@ function NovaOSPage() {
       sintomas,
       checklist,
       acessorios,
+      assinatura,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -160,7 +165,7 @@ function NovaOSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     clienteRapido, clienteId, clienteNome, contacto, equipamento,
-    marcaModelo, numSerie, pin, sintomas, checklist, acessorios,
+    marcaModelo, numSerie, pin, sintomas, checklist, acessorios, assinatura,
   ]);
 
   function limparRascunho() {
@@ -186,6 +191,7 @@ function NovaOSPage() {
           sintomas_cliente: sintomas || null,
           checklist,
           acessorios,
+          assinatura_rececao: assinatura || null,
         },
       }),
     onSuccess: (r) => {
@@ -215,6 +221,7 @@ function NovaOSPage() {
   const podeSubmeter =
     clienteNome.trim().length > 0 &&
     sintomas.trim().length > 0 &&
+    assinatura.trim().length > 0 &&
     (clienteRapido || contacto.trim().length > 0);
 
   return (
@@ -248,6 +255,7 @@ function NovaOSPage() {
               setSintomas("");
               setChecklist(DEFAULT_CHECKLIST);
               setAcessorios([]);
+              setAssinatura("");
             }}
           >
             Começar em branco
