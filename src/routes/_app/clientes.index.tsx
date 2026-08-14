@@ -170,6 +170,7 @@ function EditDialog({
     nome: item.nome ?? "",
     nif: item.nif ?? "",
     telefone: item.telefone ?? "",
+    email: item.email ?? "",
     linha_preco: (item.linha_preco === 2 ? 2 : 1) as 1 | 2,
   });
   return (
@@ -193,6 +194,16 @@ function EditDialog({
               <Input value={state.telefone} onChange={(e) => setState({ ...state, telefone: e.target.value })} />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input
+              type="email"
+              placeholder="cliente@exemplo.pt"
+              value={state.email}
+              onChange={(e) => setState({ ...state, email: e.target.value })}
+            />
+          </div>
+
           <div className="space-y-1.5">
             <Label>Preço a aplicar</Label>
             <Select value={String(state.linha_preco)} onValueChange={(v) => setState({ ...state, linha_preco: Number(v) as 1 | 2 })}>
