@@ -32,17 +32,19 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireAdmin();
-    if (data.id) {
-      const { id, ...rest } = data;
-      await supabaseAdmin.from("catalogo").update(rest).eq("id", id);
+    const { id, ...rest } = data;
+    const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
+    if (id) {
+      const { error } = await supabaseAdmin.from("catalogo").update(payload).eq("id", id);
+      if (error) throw new Error(error.message);
       return { id };
     } else {
-      const { id: _ignore, ...rest } = data;
-      const { data: row, error } = await supabaseAdmin.from("catalogo").insert(rest).select("id").single();
+      const { data: row, error } = await supabaseAdmin.from("catalogo").insert(payload).select("id").single();
       if (error) throw new Error(error.message);
       return { id: row.id };
     }
   });
+
 
 export const deleteCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
