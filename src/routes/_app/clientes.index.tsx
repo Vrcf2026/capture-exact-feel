@@ -90,6 +90,7 @@ function ClientesPage() {
               <TableHead>Nome</TableHead>
               <TableHead>NIF</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Preço</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -97,7 +98,7 @@ function ClientesPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   Sem clientes.
                 </TableCell>
               </TableRow>
@@ -111,6 +112,8 @@ function ClientesPage() {
                   </TableCell>
                   <TableCell className="mono">{c.nif ?? "—"}</TableCell>
                   <TableCell className="mono">{c.telefone ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{c.email ?? "—"}</TableCell>
+
                   <TableCell className="text-xs text-muted-foreground">
                     {c.linha_preco === 2 ? "Preço 2" : "Preço 1"}
                   </TableCell>
