@@ -72,6 +72,7 @@ const cliSchema = z.object({
   nome: z.string().trim().min(1).max(200),
   nif: z.string().trim().max(20).optional().nullable(),
   telefone: z.string().trim().max(30).optional().nullable(),
+  email: z.string().trim().max(200).optional().nullable(),
   linha_preco: z.union([z.literal(1), z.literal(2)]).default(1),
 });
 
@@ -85,8 +86,10 @@ export const upsertCliente = createServerFn({ method: "POST" })
       nome: data.nome,
       nif: data.nif || null,
       telefone: data.telefone || null,
+      email: data.email || null,
       linha_preco: data.linha_preco,
     };
+
     if (data.id) {
       await supabaseAdmin.from("clientes").update(payload).eq("id", data.id);
       return { id: data.id };
