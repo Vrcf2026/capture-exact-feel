@@ -54,7 +54,11 @@ function CatalogoPage() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
 
-  const filtered = data.filter((i) => i.nome.toLowerCase().includes(q.toLowerCase()));
+  const termo = q.toLowerCase().trim();
+  const filtered = data.filter(
+    (i) => !termo || i.nome.toLowerCase().includes(termo) || (i.codigo ?? "").toLowerCase().includes(termo),
+  );
+
 
   const delFn = useServerFn(deleteCatalogo);
   const delM = useMutation({
