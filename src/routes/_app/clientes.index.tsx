@@ -76,7 +76,13 @@ function ClientesPage() {
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
-      <Input placeholder="Procurar…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+      <Input
+        placeholder="Procurar por nome, NIF, telefone ou email…"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        className="max-w-sm"
+      />
+
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
