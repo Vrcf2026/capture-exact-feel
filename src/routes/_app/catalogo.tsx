@@ -54,7 +54,11 @@ function CatalogoPage() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
 
-  const filtered = data.filter((i) => i.nome.toLowerCase().includes(q.toLowerCase()));
+  const termo = q.toLowerCase().trim();
+  const filtered = data.filter(
+    (i) => !termo || i.nome.toLowerCase().includes(termo) || (i.codigo ?? "").toLowerCase().includes(termo),
+  );
+
 
   const delFn = useServerFn(deleteCatalogo);
   const delM = useMutation({
@@ -72,23 +76,25 @@ function CatalogoPage() {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "" })}>
+          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "", codigo: "" })}>
             <Plus className="h-4 w-4 mr-1" /> Novo item
           </Button>
         )}
       </div>
 
       <Input
-        placeholder="Procurar…"
+        placeholder="Procurar por código ou nome…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="max-w-sm"
       />
 
+
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-28">Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Preço</TableHead>
@@ -101,14 +107,16 @@ function CatalogoPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">
                   Sem itens.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((i) => (
                 <TableRow key={i.id}>
+                  <TableCell className="mono text-xs text-muted-foreground">{i.codigo ?? "—"}</TableCell>
                   <TableCell className="font-medium">{i.nome}</TableCell>
+
                   <TableCell>
                     <Badge variant={i.tipo === "produto" ? "secondary" : "outline"}>{i.tipo}</Badge>
                   </TableCell>

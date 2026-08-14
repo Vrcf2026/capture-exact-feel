@@ -93,6 +93,7 @@ export type Database = {
       catalogo: {
         Row: {
           ativo: boolean
+          codigo: string | null
           created_at: string
           id: string
           nome: string
@@ -103,6 +104,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -113,6 +115,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          codigo?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -126,6 +129,7 @@ export type Database = {
       clientes: {
         Row: {
           created_at: string
+          email: string | null
           id: string
           linha_preco: number
           nif: string | null
@@ -134,6 +138,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email?: string | null
           id?: string
           linha_preco?: number
           nif?: string | null
@@ -142,6 +147,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email?: string | null
           id?: string
           linha_preco?: number
           nif?: string | null

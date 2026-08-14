@@ -47,12 +47,16 @@ function ClientesPage() {
   const { data = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Partial<Cliente> | null>(null);
+  const termo = q.toLowerCase().trim();
   const filtered = data.filter(
     (c) =>
-      c.nome.toLowerCase().includes(q.toLowerCase()) ||
-      (c.nif ?? "").includes(q) ||
-      (c.telefone ?? "").includes(q),
+      !termo ||
+      c.nome.toLowerCase().includes(termo) ||
+      (c.nif ?? "").toLowerCase().includes(termo) ||
+      (c.telefone ?? "").toLowerCase().includes(termo) ||
+      (c.email ?? "").toLowerCase().includes(termo),
   );
+
 
   const delFn = useServerFn(deleteCliente);
   const delM = useMutation({
@@ -72,7 +76,13 @@ function ClientesPage() {
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
-      <Input placeholder="Procurar…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+      <Input
+        placeholder="Procurar por nome, NIF, telefone ou email…"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        className="max-w-sm"
+      />
+
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
@@ -80,6 +90,7 @@ function ClientesPage() {
               <TableHead>Nome</TableHead>
               <TableHead>NIF</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Preço</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -87,7 +98,7 @@ function ClientesPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   Sem clientes.
                 </TableCell>
               </TableRow>
@@ -101,6 +112,8 @@ function ClientesPage() {
                   </TableCell>
                   <TableCell className="mono">{c.nif ?? "—"}</TableCell>
                   <TableCell className="mono">{c.telefone ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{c.email ?? "—"}</TableCell>
+
                   <TableCell className="text-xs text-muted-foreground">
                     {c.linha_preco === 2 ? "Preço 2" : "Preço 1"}
                   </TableCell>
@@ -157,6 +170,7 @@ function EditDialog({
     nome: item.nome ?? "",
     nif: item.nif ?? "",
     telefone: item.telefone ?? "",
+    email: item.email ?? "",
     linha_preco: (item.linha_preco === 2 ? 2 : 1) as 1 | 2,
   });
   return (
@@ -180,6 +194,16 @@ function EditDialog({
               <Input value={state.telefone} onChange={(e) => setState({ ...state, telefone: e.target.value })} />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input
+              type="email"
+              placeholder="cliente@exemplo.pt"
+              value={state.email}
+              onChange={(e) => setState({ ...state, email: e.target.value })}
+            />
+          </div>
+
           <div className="space-y-1.5">
             <Label>Preço a aplicar</Label>
             <Select value={String(state.linha_preco)} onValueChange={(v) => setState({ ...state, linha_preco: Number(v) as 1 | 2 })}>

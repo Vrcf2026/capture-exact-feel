@@ -16,6 +16,7 @@ export const listCatalogo = createServerFn({ method: "GET" }).handler(async () =
 
 const catSchema = z.object({
   id: z.string().uuid().optional(),
+  codigo: z.string().trim().max(40).optional().nullable(),
   nome: z.string().trim().min(1).max(200),
   tipo: z.enum(["produto", "servico"]),
   preco: z.number().min(0),
@@ -24,23 +25,26 @@ const catSchema = z.object({
   ativo: z.boolean().default(true),
 });
 
+
 export const upsertCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => catSchema.parse(d))
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireAdmin();
-    if (data.id) {
-      const { id, ...rest } = data;
-      await supabaseAdmin.from("catalogo").update(rest).eq("id", id);
+    const { id, ...rest } = data;
+    const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
+    if (id) {
+      const { error } = await supabaseAdmin.from("catalogo").update(payload).eq("id", id);
+      if (error) throw new Error(error.message);
       return { id };
     } else {
-      const { id: _ignore, ...rest } = data;
-      const { data: row, error } = await supabaseAdmin.from("catalogo").insert(rest).select("id").single();
+      const { data: row, error } = await supabaseAdmin.from("catalogo").insert(payload).select("id").single();
       if (error) throw new Error(error.message);
       return { id: row.id };
     }
   });
+
 
 export const deleteCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
@@ -68,6 +72,7 @@ const cliSchema = z.object({
   nome: z.string().trim().min(1).max(200),
   nif: z.string().trim().max(20).optional().nullable(),
   telefone: z.string().trim().max(30).optional().nullable(),
+  email: z.string().trim().max(200).optional().nullable(),
   linha_preco: z.union([z.literal(1), z.literal(2)]).default(1),
 });
 
@@ -81,8 +86,10 @@ export const upsertCliente = createServerFn({ method: "POST" })
       nome: data.nome,
       nif: data.nif || null,
       telefone: data.telefone || null,
+      email: data.email || null,
       linha_preco: data.linha_preco,
     };
+
     if (data.id) {
       await supabaseAdmin.from("clientes").update(payload).eq("id", data.id);
       return { id: data.id };
