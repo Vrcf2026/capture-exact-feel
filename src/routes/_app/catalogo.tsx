@@ -76,18 +76,19 @@ function CatalogoPage() {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "" })}>
+          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "", codigo: "" })}>
             <Plus className="h-4 w-4 mr-1" /> Novo item
           </Button>
         )}
       </div>
 
       <Input
-        placeholder="Procurar…"
+        placeholder="Procurar por código ou nome…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="max-w-sm"
       />
+
 
       <div className="rounded-lg border border-border bg-card">
         <Table>
