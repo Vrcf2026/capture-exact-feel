@@ -16,6 +16,7 @@ export const listCatalogo = createServerFn({ method: "GET" }).handler(async () =
 
 const catSchema = z.object({
   id: z.string().uuid().optional(),
+  codigo: z.string().trim().max(40).optional().nullable(),
   nome: z.string().trim().min(1).max(200),
   tipo: z.enum(["produto", "servico"]),
   preco: z.number().min(0),
@@ -23,6 +24,7 @@ const catSchema = z.object({
   unidade: z.string().trim().min(1).default("unidade"),
   ativo: z.boolean().default(true),
 });
+
 
 export const upsertCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => catSchema.parse(d))
