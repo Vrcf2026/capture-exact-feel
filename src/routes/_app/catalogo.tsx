@@ -94,6 +94,7 @@ function CatalogoPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-28">Código</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Preço</TableHead>
@@ -106,14 +107,16 @@ function CatalogoPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">
                   Sem itens.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((i) => (
                 <TableRow key={i.id}>
+                  <TableCell className="mono text-xs text-muted-foreground">{i.codigo ?? "—"}</TableCell>
                   <TableCell className="font-medium">{i.nome}</TableCell>
+
                   <TableCell>
                     <Badge variant={i.tipo === "produto" ? "secondary" : "outline"}>{i.tipo}</Badge>
                   </TableCell>
