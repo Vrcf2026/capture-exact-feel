@@ -47,12 +47,16 @@ function ClientesPage() {
   const { data = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<Partial<Cliente> | null>(null);
+  const termo = q.toLowerCase().trim();
   const filtered = data.filter(
     (c) =>
-      c.nome.toLowerCase().includes(q.toLowerCase()) ||
-      (c.nif ?? "").includes(q) ||
-      (c.telefone ?? "").includes(q),
+      !termo ||
+      c.nome.toLowerCase().includes(termo) ||
+      (c.nif ?? "").toLowerCase().includes(termo) ||
+      (c.telefone ?? "").toLowerCase().includes(termo) ||
+      (c.email ?? "").toLowerCase().includes(termo),
   );
+
 
   const delFn = useServerFn(deleteCliente);
   const delM = useMutation({
