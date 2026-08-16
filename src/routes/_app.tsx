@@ -58,7 +58,39 @@ export const Route = createFileRoute("/_app")({
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: AppLayout,
+  errorComponent: AppErrorComponent,
 });
+
+function AppErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Ocorreu um erro</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {error.message || "Não foi possível concluir a operação."}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                router.invalidate();
+                reset();
+              }}
+            >
+              Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={() => router.navigate({ to: "/dashboard" })}>
+              Ir para o painel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function AppLayout() {
   const { data: me } = useQuery(meQuery);
