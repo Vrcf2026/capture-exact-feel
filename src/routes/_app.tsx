@@ -3,6 +3,7 @@ import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/r
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
+import { setSessionToken } from "@/lib/custom-auth-attacher";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ function AppLayout() {
   const logoutM = useMutation({
     mutationFn: () => doLogout(),
     onSuccess: async () => {
+      setSessionToken(null);
       await qc.cancelQueries();
       qc.clear();
       await router.navigate({ to: "/login", replace: true });

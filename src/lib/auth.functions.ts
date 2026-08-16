@@ -67,10 +67,12 @@ export const login = createServerFn({ method: "POST" })
 
     if (!u) return { ok: false as const, error: "Credenciais inválidas." };
 
+    const { createSessionToken } = await import("./auth.server");
     const session = await useSession(sessionConfig());
     await session.update({ userId: u.id });
     return {
       ok: true as const,
+      token: await createSessionToken(u.id),
       user: {
         id: u.id,
         nome: u.nome,

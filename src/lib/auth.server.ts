@@ -35,9 +35,57 @@ export function sessionConfig() {
   };
 }
 
-export async function getSessionUser(): Promise<CurrentUser | null> {
+// ---- Token de sessão alternativo (para quando os cookies são bloqueados no iframe/mobile)
+const enc = new TextEncoder();
+
+async function hmac(payload: string): Promise<string> {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET em falta.");
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/, "");
+}
+
+export async function createSessionToken(userId: string): Promise<string> {
+  const exp = Date.now() + 30 * 24 * 60 * 60 * 1000;
+  const payload = `${userId}.${exp}`;
+  return `${payload}.${await hmac(payload)}`;
+}
+
+async function userIdFromToken(token: string): Promise<string | null> {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [userId, exp, sig] = parts;
+  if (!userId || !exp || !sig) return null;
+  if (Number(exp) < Date.now()) return null;
+  const expected = await hmac(`${userId}.${exp}`);
+  if (expected !== sig) return null;
+  return userId;
+}
+
+async function currentUserId(): Promise<string | null> {
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const header = getRequestHeader("x-vrcf-session" as never) as string | undefined;
+    if (header) {
+      const id = await userIdFromToken(header);
+      if (id) return id;
+    }
+  } catch {
+    // sem request context (build/prerender) — segue para o cookie
+  }
   const session = await useSession<SessionData>(sessionConfig());
-  const userId = session.data.userId;
+  return session.data.userId ?? null;
+}
+
+export async function getSessionUser(): Promise<CurrentUser | null> {
+  const userId = await currentUserId();
   if (!userId) return null;
   const { data, error } = await supabaseAdmin
     .from("utilizadores")
@@ -47,6 +95,7 @@ export async function getSessionUser(): Promise<CurrentUser | null> {
   if (error || !data || !data.ativo) return null;
   return data as CurrentUser;
 }
+
 
 export async function requireUser(): Promise<CurrentUser> {
   const u = await getSessionUser();
