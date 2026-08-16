@@ -3,6 +3,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { criarVenda } from "@/lib/loja.functions";
+import { alertasPainel } from "@/lib/geral.functions";
+import { toast } from "sonner";
 import { listCatalogo, listClientes } from "@/lib/admin.functions";
 import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { PickerCatalogo } from "@/components/PickerCatalogo";
@@ -60,6 +62,8 @@ function NovaVendaPage() {
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const criar = useServerFn(criarVenda);
+  const { data: alertas } = useQuery({ queryKey: ["alertas"], queryFn: () => alertasPainel() });
+  const caixaFechada = alertas ? !alertas.caixaAbertaHoje : false;
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
@@ -119,12 +123,16 @@ function NovaVendaPage() {
           notas: notas || null,
         },
       }),
-    onSuccess: (r) => navigate({ to: "/registos/$id", params: { id: r.id } }),
+    onSuccess: (r) => {
+      toast.success("Venda registada.");
+      navigate({ to: "/registos/$id", params: { id: r.id } });
+    },
   });
 
   const conta = pags.some((p) => p.metodo === "conta_corrente");
   const podeSubmeter =
     pronto &&
+    !caixaFechada &&
     itens.length > 0 &&
     itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
     somaPag > 0 &&
@@ -138,6 +146,15 @@ function NovaVendaPage() {
         <h1 className="text-2xl font-semibold">Nova venda</h1>
         <p className="text-sm text-muted-foreground">Registo com múltiplos itens e formas de pagamento.</p>
       </div>
+
+      {caixaFechada && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <span>A caixa de hoje ainda não está aberta — abra a caixa para poder registar vendas.</span>
+          <Button size="sm" variant="outline" onClick={() => navigate({ to: "/caixa" })}>
+            Abrir caixa
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
