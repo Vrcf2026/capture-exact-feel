@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { criarVenda } from "@/lib/loja.functions";
 import { listCatalogo, listClientes } from "@/lib/admin.functions";
 import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
+import { PickerCatalogo } from "@/components/PickerCatalogo";
+import { PickerCliente } from "@/components/PickerCliente";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
