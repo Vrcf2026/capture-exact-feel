@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { StatusBadgeOS } from "@/components/StatusBadgeOS";
 import { SignaturePad } from "@/components/SignaturePad";
+import { PickerCatalogo } from "@/components/PickerCatalogo";
 import { eur, dt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
