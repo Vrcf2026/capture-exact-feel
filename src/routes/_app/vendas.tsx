@@ -239,19 +239,13 @@ function NovaVendaPage() {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Cliente</Label>
-                <Select
-                  value={clienteId ?? "__none"}
-                  onValueChange={(v) => setClienteId(v === "__none" ? null : v)}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Consumidor final</SelectItem>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PickerCliente
+                  clientes={clientes}
+                  value={clienteId}
+                  onSelect={(c) => setClienteId(c?.id ?? null)}
+                />
               </div>
+
               <div className="space-y-1.5">
                 <Label>Vendedor</Label>
                 <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
