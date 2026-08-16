@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -47,7 +48,9 @@ function VendedoresPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Vendedores</h1>
-          <p className="text-sm text-muted-foreground">Identificados por PIN em cada venda; sem login.</p>
+          <p className="text-sm text-muted-foreground">
+            Identificados por PIN em cada venda; sem login. PIN esquecido? Edite o vendedor e defina um novo.
+          </p>
         </div>
         <Button onClick={() => setEditing({ nome: "", ativo: true })}>
           <Plus className="h-4 w-4 mr-1" /> Novo vendedor
@@ -116,6 +119,7 @@ function EditDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{item.id ? "Editar vendedor" : "Novo vendedor"}</DialogTitle>
+          <DialogDescription>Nome e PIN de 4 a 8 dígitos usados para confirmar vendas.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <div className="space-y-1.5">
