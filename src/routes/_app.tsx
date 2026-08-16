@@ -67,6 +67,7 @@ function AppLayout() {
   const logoutM = useMutation({
     mutationFn: () => doLogout(),
     onSuccess: async () => {
+      setSessionToken(null);
       await qc.cancelQueries();
       qc.clear();
       await router.navigate({ to: "/login", replace: true });
