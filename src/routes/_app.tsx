@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
 import { setSessionToken } from "@/lib/custom-auth-attacher";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,23 @@ function AppErrorComponent({ error, reset }: { error: Error; reset: () => void }
 function AppLayout() {
   const { data: me } = useQuery(meQuery);
   const router = useRouter();
+  // Atalhos de teclado para o dia a dia: F2 nova venda, F3 pesquisa, F4 nova OS.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "F2") {
+        e.preventDefault();
+        void router.navigate({ to: "/vendas" });
+      } else if (e.key === "F3") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>("input[data-global-search]")?.focus();
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        void router.navigate({ to: "/oficina/nova" });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
   const qc = useQueryClient();
   const doLogout = useServerFn(logout);
   const logoutM = useMutation({
