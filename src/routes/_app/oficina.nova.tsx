@@ -526,6 +526,22 @@ function NovaOSPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-3">
+            <PenLine className="h-4 w-4 text-primary" /> Assinatura do cliente
+            <BotaoGuardar onGuardar={guardarRascunho} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignaturePad
+            label="Assinatura do cliente (aceitação de termos) *"
+            value={assinatura}
+            onChange={setAssinatura}
+          />
+        </CardContent>
+      </Card>
+
       {m.isError && <p className="text-sm text-destructive">{(m.error as Error).message}</p>}
 
       <div className="flex items-center justify-end gap-3">
