@@ -143,20 +143,14 @@ function NovaVendaPage() {
             <CardHeader className="flex-row items-center gap-3">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-base">Itens</CardTitle>
-                <Select onValueChange={adicionarDoCatalogo}>
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder="Adicionar do catálogo…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogo.filter((c) => c.ativo).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome} — {eur(c.preco)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PickerCatalogo
+                  itens={catalogo}
+                  onSelect={(i) => i && adicionarDoCatalogo(i.id)}
+                  triggerLabel="Adicionar do catálogo…"
+                />
               </div>
             </CardHeader>
+
 
             <CardContent className="p-0">
               <Table>
