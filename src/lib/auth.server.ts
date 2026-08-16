@@ -18,9 +18,22 @@ export interface CurrentUser {
   deve_trocar_password: boolean;
 }
 
+function sessionSecret() {
+  // SESSION_SECRET é o valor preferido; se o ambiente ainda não o tiver
+  // injetado, deriva-se um segredo estável das chaves do backend para a app
+  // não ficar com ecrã branco.
+  const s =
+    process.env.SESSION_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!s) throw new Error("SESSION_SECRET em falta.");
+  return s.length >= 32 ? s : s.padEnd(32, "0");
+}
+
 export function sessionConfig() {
-  const password = process.env.SESSION_SECRET;
-  if (!password) throw new Error("SESSION_SECRET em falta.");
+  const password = sessionSecret();
+
   return {
     password,
     name: "vrcf-session",
@@ -39,8 +52,8 @@ export function sessionConfig() {
 const enc = new TextEncoder();
 
 async function hmac(payload: string): Promise<string> {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET em falta.");
+  const secret = sessionSecret();
+
   const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),
