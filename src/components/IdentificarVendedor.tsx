@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -93,6 +94,9 @@ export function useVendedorObrigatorio() {
 
         <DialogHeader>
           <DialogTitle>Identificar vendedor</DialogTitle>
+          <DialogDescription>
+            Escolha o seu nome e introduza o PIN para registar vendas em seu nome.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">

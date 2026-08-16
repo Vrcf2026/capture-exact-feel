@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouter } from "@tanstack/react-router";
 import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
 import { setSessionToken } from "@/lib/custom-auth-attacher";
 import { Button } from "@/components/ui/button";
@@ -58,11 +58,60 @@ export const Route = createFileRoute("/_app")({
   },
   loader: ({ context }) => context.queryClient.ensureQueryData(meQuery),
   component: AppLayout,
+  errorComponent: AppErrorComponent,
 });
+
+function AppErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Ocorreu um erro</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {error.message || "Não foi possível concluir a operação."}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => {
+                router.invalidate();
+                reset();
+              }}
+            >
+              Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={() => router.navigate({ to: "/dashboard" })}>
+              Ir para o painel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function AppLayout() {
   const { data: me } = useQuery(meQuery);
   const router = useRouter();
+  // Atalhos de teclado para o dia a dia: F2 nova venda, F3 pesquisa, F4 nova OS.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "F2") {
+        e.preventDefault();
+        void router.navigate({ to: "/vendas" });
+      } else if (e.key === "F3") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>("input[data-global-search]")?.focus();
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        void router.navigate({ to: "/oficina/nova" });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
   const qc = useQueryClient();
   const doLogout = useServerFn(logout);
   const logoutM = useMutation({
