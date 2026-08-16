@@ -36,7 +36,10 @@ function LoginPage() {
     try {
       const r = await doLogin({ data: { nome, password } });
       if (!r.ok) setErro(r.error);
-      else await router.navigate({ to: "/dashboard" });
+      else {
+        setSessionToken(r.token);
+        await router.navigate({ to: "/dashboard" });
+      }
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao entrar.");
     } finally {
