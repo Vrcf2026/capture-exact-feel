@@ -52,8 +52,8 @@ export function sessionConfig() {
 const enc = new TextEncoder();
 
 async function hmac(payload: string): Promise<string> {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET em falta.");
+  const secret = sessionSecret();
+
   const key = await crypto.subtle.importKey(
     "raw",
     enc.encode(secret),
