@@ -19,6 +19,12 @@ export const getRouter = () => {
     // Qualquer erro de escrita/leitura passa a aparecer como aviso, nunca como ecrã branco.
     mutationCache: new MutationCache({
       onError: (error) => toast.error(mensagem(error)),
+      onSuccess: (_d, _v, _c, mutation) => {
+        // Cada página pode definir meta.sucesso (ou meta.silencioso) para afinar a mensagem.
+        const meta = mutation.options.meta as { sucesso?: string; silencioso?: boolean } | undefined;
+        if (meta?.silencioso) return;
+        toast.success(meta?.sucesso ?? "Alterações guardadas.");
+      },
     }),
     queryCache: new QueryCache({
       onError: (error) => toast.error(mensagem(error)),
