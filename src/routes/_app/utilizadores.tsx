@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -57,9 +56,7 @@ function UtilizadoresPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Utilizadores</h1>
-          <p className="text-sm text-muted-foreground">
-            Contas com login (nome + password). Password esquecida? Edite o utilizador e defina uma nova.
-          </p>
+          <p className="text-sm text-muted-foreground">Contas com login (nome + password).</p>
         </div>
         <Button onClick={() => setEditing({ papel: "operador", acesso_loja: true, acesso_oficina: false, ativo: true, nome: "" })}>
           <Plus className="h-4 w-4 mr-1" /> Novo utilizador
@@ -139,7 +136,6 @@ function EditDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{item.id ? "Editar utilizador" : "Novo utilizador"}</DialogTitle>
-          <DialogDescription>Nome, password e permissões de acesso a Loja e Oficina.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
           <div className="space-y-1.5">

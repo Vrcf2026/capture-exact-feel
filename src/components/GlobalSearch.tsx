@@ -45,8 +45,7 @@ export function GlobalSearch() {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        data-global-search
-        placeholder="Pesquisar (F3): nº venda, nº OS ou cliente…"
+        placeholder="Pesquisar nº venda, nº OS ou cliente…"
         className="h-8 pl-8"
       />
       {open && debounced.length >= 1 && (
