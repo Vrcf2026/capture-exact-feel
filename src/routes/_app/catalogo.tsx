@@ -185,6 +185,7 @@ function EditDialog({
   });
   const [state, setState] = useState({
     id: item.id,
+    codigo: item.codigo ?? "",
     nome: item.nome ?? "",
     tipo: (item.tipo ?? "produto") as "produto" | "servico",
     preco: Number(item.preco ?? 0),
@@ -200,10 +201,22 @@ function EditDialog({
           <DialogTitle>{item.id ? "Editar item" : "Novo item"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
-            <Input value={state.nome} onChange={(e) => setState({ ...state, nome: e.target.value })} />
+          <div className="grid grid-cols-[140px_1fr] gap-4">
+            <div className="space-y-1.5">
+              <Label>Código</Label>
+              <Input
+                className="mono"
+                placeholder="Ex: SSD500"
+                value={state.codigo}
+                onChange={(e) => setState({ ...state, codigo: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={state.nome} onChange={(e) => setState({ ...state, nome: e.target.value })} />
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Tipo</Label>
