@@ -542,20 +542,20 @@ function OSDetalhePage() {
             <div className="flex flex-wrap items-end gap-2 pt-2 border-t border-border">
               <div className="space-y-1">
                 <Label className="text-xs">Do catálogo</Label>
-                <Select value={novoItemCatalogo} onValueChange={setNovoItemCatalogo}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue placeholder="Item livre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_livre">Item livre (texto)</SelectItem>
-                    {catalogo.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome} — {eur(c.preco)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PickerCatalogo
+                  itens={catalogo}
+                  value={novoItemCatalogo === "_livre" ? null : novoItemCatalogo}
+                  onSelect={(i) => setNovoItemCatalogo(i ? i.id : "_livre")}
+                  triggerLabel="Item livre (texto)"
+                  className="w-56"
+                  extraOption={{
+                    label: "Item livre (texto)",
+                    onSelect: () => setNovoItemCatalogo("_livre"),
+                    selected: novoItemCatalogo === "_livre",
+                  }}
+                />
               </div>
+
               {novoItemCatalogo === "_livre" && (
                 <div className="space-y-1">
                   <Label className="text-xs">Descrição</Label>
