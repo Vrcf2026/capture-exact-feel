@@ -131,10 +131,10 @@ export const confirmarVendedorAcesso = createServerFn({ method: "POST" })
       .select("id, nome, pin_hash, ativo")
       .eq("id", data.vendedor_id)
       .maybeSingle();
-    if (!v || !v.ativo) throw new Error("Vendedor inválido.");
+    if (!v || !v.ativo) return { ok: false as const, error: "Vendedor inválido." };
     const ok = await bcrypt.compare(data.pin, v.pin_hash);
-    if (!ok) throw new Error("PIN incorreto.");
-    return { id: v.id, nome: v.nome };
+    if (!ok) return { ok: false as const, error: "PIN incorreto." };
+    return { ok: true as const, id: v.id, nome: v.nome };
   });
 
 export const listVendedores = createServerFn({ method: "GET" }).handler(async () => {

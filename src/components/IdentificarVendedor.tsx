@@ -60,6 +60,10 @@ export function useVendedorObrigatorio() {
     setErro(null);
     try {
       const v = await confirmar({ data: { vendedor_id: selId, pin } });
+      if (!v.ok) {
+        setErro(v.error);
+        return;
+      }
       setVendedorId(v.id);
       setVendedorNome(v.nome);
       setVendedorPin(pin);
