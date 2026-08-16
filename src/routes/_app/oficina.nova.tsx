@@ -326,19 +326,12 @@ function NovaOSPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Cliente existente (opcional)</Label>
-            <Select value={clienteId ?? "novo"} onValueChange={selecionarCliente}>
-              <SelectTrigger>
-                <SelectValue placeholder="Cliente novo / avulso" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="novo">Cliente novo / avulso</SelectItem>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PickerCliente
+              clientes={clientes}
+              value={clienteId}
+              onSelect={(c) => selecionarCliente(c ? c.id : "novo")}
+              semClienteLabel="Cliente novo / avulso"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
