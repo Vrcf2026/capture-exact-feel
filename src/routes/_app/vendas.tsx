@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { criarVenda } from "@/lib/loja.functions";
 import { listCatalogo, listClientes } from "@/lib/admin.functions";
 import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
+import { PickerCatalogo } from "@/components/PickerCatalogo";
+import { PickerCliente } from "@/components/PickerCliente";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,20 +145,14 @@ function NovaVendaPage() {
             <CardHeader className="flex-row items-center gap-3">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-base">Itens</CardTitle>
-                <Select onValueChange={adicionarDoCatalogo}>
-                  <SelectTrigger className="w-[220px]">
-                    <SelectValue placeholder="Adicionar do catálogo…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {catalogo.filter((c) => c.ativo).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome} — {eur(c.preco)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PickerCatalogo
+                  itens={catalogo}
+                  onSelect={(i) => i && adicionarDoCatalogo(i.id)}
+                  triggerLabel="Adicionar do catálogo…"
+                />
               </div>
             </CardHeader>
+
 
             <CardContent className="p-0">
               <Table>
@@ -243,19 +239,13 @@ function NovaVendaPage() {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Cliente</Label>
-                <Select
-                  value={clienteId ?? "__none"}
-                  onValueChange={(v) => setClienteId(v === "__none" ? null : v)}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none">Consumidor final</SelectItem>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PickerCliente
+                  clientes={clientes}
+                  value={clienteId}
+                  onSelect={(c) => setClienteId(c?.id ?? null)}
+                />
               </div>
+
               <div className="space-y-1.5">
                 <Label>Vendedor</Label>
                 <div className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">

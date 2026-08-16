@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X } from "lucide-react";
+import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X, PenLine } from "lucide-react";
 import {
   criarOS,
   uploadAnexoOS,
@@ -18,14 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SignaturePad } from "@/components/SignaturePad";
+import { PickerCliente } from "@/components/PickerCliente";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_app/oficina/nova")({
   head: () => ({
@@ -326,19 +320,12 @@ function NovaOSPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Cliente existente (opcional)</Label>
-            <Select value={clienteId ?? "novo"} onValueChange={selecionarCliente}>
-              <SelectTrigger>
-                <SelectValue placeholder="Cliente novo / avulso" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="novo">Cliente novo / avulso</SelectItem>
-                {clientes.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PickerCliente
+              clientes={clientes}
+              value={clienteId}
+              onSelect={(c) => selecionarCliente(c ? c.id : "novo")}
+              semClienteLabel="Cliente novo / avulso"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -389,15 +376,6 @@ function NovaOSPage() {
             <Label>Sintomas relatados pelo cliente *</Label>
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
           </div>
-          <div className="space-y-2">
-            <SignaturePad
-              label="Assinatura do cliente (aceitação de termos) *"
-              value={assinatura}
-              onChange={setAssinatura}
-            />
-          </div>
-
-
         </CardContent>
       </Card>
 
@@ -523,6 +501,22 @@ function NovaOSPage() {
               <span className="text-xs text-muted-foreground">Imagens comprimidas automaticamente.</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-3">
+            <PenLine className="h-4 w-4 text-primary" /> Assinatura do cliente
+            <BotaoGuardar onGuardar={guardarRascunho} />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SignaturePad
+            label="Assinatura do cliente (aceitação de termos) *"
+            value={assinatura}
+            onChange={setAssinatura}
+          />
         </CardContent>
       </Card>
 
