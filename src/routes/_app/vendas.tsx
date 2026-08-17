@@ -76,7 +76,10 @@ function NovaVendaPage() {
     { key: uid(), catalogo_id: null, descricao: "", quantidade: 1, preco_unitario: 0 },
   ]);
 
-  const [pags, setPags] = useState<Pag[]>([{ key: uid(), metodo: "dinheiro", valor: 0 }]);
+  const [pags, setPags] = useState<Pag[]>([
+    { key: uid(), metodo: "dinheiro", valor: 0, notas: "" },
+  ]);
+
   const [notas, setNotas] = useState("");
 
   const total = useMemo(
