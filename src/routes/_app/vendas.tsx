@@ -69,6 +69,11 @@ function NovaVendaPage() {
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const criar = useServerFn(criarVenda);
+  const { data: caixa, isLoading: caixaLoading } = useQuery({
+    queryKey: ["caixa-aberto"],
+    queryFn: () => caixaAberto(),
+  });
+  const caixaFechada = !caixaLoading && !caixa;
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
