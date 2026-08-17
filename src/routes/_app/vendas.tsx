@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { criarVenda } from "@/lib/loja.functions";
+import { criarVenda, caixaAberto } from "@/lib/loja.functions";
 import { listCatalogo, listClientes } from "@/lib/admin.functions";
 import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { PickerCatalogo } from "@/components/PickerCatalogo";
@@ -69,6 +69,11 @@ function NovaVendaPage() {
   const { data: catalogo = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const criar = useServerFn(criarVenda);
+  const { data: caixa, isLoading: caixaLoading } = useQuery({
+    queryKey: ["caixa-aberto"],
+    queryFn: () => caixaAberto(),
+  });
+  const caixaFechada = !caixaLoading && !caixa;
   const { vendedorId, vendedorNome, vendedorPin, trocarVendedor, dialog, pronto } = useVendedorObrigatorio();
 
   const [clienteId, setClienteId] = useState<string | null>(null);
@@ -131,20 +136,25 @@ function NovaVendaPage() {
           notas: notas || null,
         },
       }),
+    meta: { success: "Venda registada." },
     onSuccess: (r) => navigate({ to: "/registos/$id", params: { id: r.id } }),
   });
 
   const conta = pags.some((p) => p.metodo === "conta_corrente");
-  const podeSubmeter =
-    pronto &&
-    itens.length > 0 &&
-    itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
-    somaPag > 0 &&
-    Math.abs(somaPag - total) < 0.01 &&
-    (!conta || clienteId) &&
-    pags.every(
-      (p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3,
-    );
+  const motivoBloqueio = (() => {
+    if (caixaFechada) return "Caixa fechada — abra a caixa do dia para registar vendas.";
+    if (!pronto) return "Identifique o vendedor para continuar.";
+    if (itens.length === 0) return "Adicione pelo menos um item.";
+    if (!itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0))
+      return "Há linhas incompletas: preencha descrição, quantidade e preço.";
+    if (somaPag <= 0) return "Indique ao menos um pagamento com valor.";
+    if (Math.abs(somaPag - total) >= 0.01) return "O total dos pagamentos não coincide com o total da venda.";
+    if (conta && !clienteId) return "Conta-corrente exige um cliente selecionado.";
+    if (!pags.every((p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3))
+      return "Indique o motivo do encontro de contas (mín. 3 caracteres).";
+    return null;
+  })();
+  const podeSubmeter = !motivoBloqueio;
 
 
   return (
@@ -154,6 +164,17 @@ function NovaVendaPage() {
         <h1 className="text-2xl font-semibold">Nova venda</h1>
         <p className="text-sm text-muted-foreground">Registo com múltiplos itens e formas de pagamento.</p>
       </div>
+
+      {caixaFechada && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <div className="text-sm font-medium text-destructive">
+            Caixa fechada — não é possível registar vendas sem abrir a caixa do dia.
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/caixa">Abrir caixa</Link>
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
@@ -354,7 +375,11 @@ function NovaVendaPage() {
                 value={eur(Math.abs(troco))}
                 tone={Math.abs(troco) < 0.01 ? "muted" : troco < 0 ? "danger" : "muted"}
               />
-              {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
+              {motivoBloqueio && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {motivoBloqueio}
+                </div>
+              )}
               <Button
                 className="w-full"
                 size="lg"

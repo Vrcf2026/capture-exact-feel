@@ -237,6 +237,7 @@ function NovaOSPage() {
       }
       return r;
     },
+    meta: { success: "Folha de obra criada." },
     onSuccess: (r) => {
       limparRascunho();
       navigate({ to: "/oficina/$id", params: { id: r.id } });
