@@ -325,10 +325,25 @@ const itemSchema = z.object({
   quantidade: z.number().positive(),
   preco_unitario: z.number().min(0),
 });
-const pagamentoSchema = z.object({
-  metodo: z.enum(["dinheiro", "mb", "transferencia", "conta_corrente", "cheque", "outro"]),
-  valor: z.number().positive(),
-});
+const pagamentoSchema = z
+  .object({
+    metodo: z.enum([
+      "dinheiro",
+      "mb",
+      "transferencia",
+      "conta_corrente",
+      "cheque",
+      "encontro_contas",
+      "outro",
+    ]),
+    valor: z.number().positive(),
+    notas: z.string().trim().max(500).optional().nullable(),
+  })
+  .refine((p) => p.metodo !== "encontro_contas" || (p.notas ?? "").trim().length >= 3, {
+    message: "Descreva o motivo do encontro de contas.",
+    path: ["notas"],
+  });
+
 const vendaSchema = z.object({
   cliente_id: z.string().uuid().nullable().optional(),
   vendedor_id: z.string().uuid(),
