@@ -673,6 +673,8 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
       caixa_diario_id: caixa.id,
       metodo: data.metodo,
       valor: data.valor,
+      notas: data.notas?.trim() || null,
+
       liquidado: true,
       liquidado_em: new Date().toISOString(),
       liquidado_por: u.id,
