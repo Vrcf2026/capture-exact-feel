@@ -275,42 +275,58 @@ function NovaVendaPage() {
               <CardTitle className="text-base">Pagamentos</CardTitle>
               <Button
                 size="sm" variant="outline"
-                onClick={() => setPags([...pags, { key: uid(), metodo: "dinheiro", valor: 0 }])}
+                onClick={() => setPags([...pags, { key: uid(), metodo: "dinheiro", valor: 0, notas: "" }])}
               >
                 <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
               {pags.map((p, idx) => (
-                <div key={p.key} className="grid grid-cols-[1fr_120px_auto] gap-2 items-center">
-                  <Select
-                    value={p.metodo}
-                    onValueChange={(v) => {
-                      const c = [...pags]; c[idx] = { ...p, metodo: v as Metodo }; setPags(c);
-                    }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {METODOS.map((m) => <SelectItem key={m.v} value={m.v}>{m.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="text-right mono"
-                    type="number" step="0.01" min="0"
-                    value={p.valor}
-                    onChange={(e) => {
-                      const c = [...pags]; c[idx] = { ...p, valor: Number(e.target.value) }; setPags(c);
-                    }}
-                  />
-                  <Button
-                    size="icon" variant="ghost"
-                    onClick={() => setPags(pags.filter((_, i) => i !== idx))}
-                    disabled={pags.length <= 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div key={p.key} className="space-y-2">
+                  <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-center">
+                    <Select
+                      value={p.metodo}
+                      onValueChange={(v) => {
+                        const c = [...pags]; c[idx] = { ...p, metodo: v as Metodo }; setPags(c);
+                      }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {METODOS.map((m) => <SelectItem key={m.v} value={m.v}>{m.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="text-right mono"
+                      type="number" step="0.01" min="0"
+                      value={p.valor}
+                      onChange={(e) => {
+                        const c = [...pags]; c[idx] = { ...p, valor: Number(e.target.value) }; setPags(c);
+                      }}
+                    />
+                    <Button
+                      size="icon" variant="ghost"
+                      onClick={() => setPags(pags.filter((_, i) => i !== idx))}
+                      disabled={pags.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {p.metodo === "encontro_contas" && (
+                    <div className="space-y-1 rounded-md border border-border bg-muted/40 p-2">
+                      <Label className="text-xs">Motivo do encontro de contas *</Label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Ex.: acerto de fatura de fornecedor / troca de serviço prestado…"
+                        value={p.notas}
+                        onChange={(e) => {
+                          const c = [...pags]; c[idx] = { ...p, notas: e.target.value }; setPags(c);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
+
               <Button
                 size="sm" variant="secondary"
                 onClick={() => {
