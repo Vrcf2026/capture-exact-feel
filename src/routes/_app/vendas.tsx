@@ -364,7 +364,11 @@ function NovaVendaPage() {
                 value={eur(Math.abs(troco))}
                 tone={Math.abs(troco) < 0.01 ? "muted" : troco < 0 ? "danger" : "muted"}
               />
-              {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
+              {motivoBloqueio && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  {motivoBloqueio}
+                </div>
+              )}
               <Button
                 className="w-full"
                 size="lg"
