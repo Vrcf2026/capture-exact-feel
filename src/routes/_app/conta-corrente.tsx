@@ -126,15 +126,32 @@ function LiquidarDialog({
               </Select>
             </div>
           </div>
+          {metodo === "encontro_contas" && (
+            <div className="space-y-1.5 rounded-md border border-border bg-muted/40 p-2">
+              <Label className="text-xs">Motivo do encontro de contas *</Label>
+              <Textarea
+                rows={3}
+                placeholder="Descreva o que originou o encontro de contas…"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+              />
+            </div>
+          )}
           {m.error && <p className="text-sm text-destructive">{(m.error as Error).message}</p>}
         </div>
         <DialogFooter>
           <Button
             onClick={() => m.mutate()}
-            disabled={m.isPending || valor <= 0 || valor > divida.saldo}
+            disabled={
+              m.isPending ||
+              valor <= 0 ||
+              valor > divida.saldo ||
+              (metodo === "encontro_contas" && motivo.trim().length < 3)
+            }
           >
             {m.isPending ? "A registar…" : "Confirmar recebimento"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
