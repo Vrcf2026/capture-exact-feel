@@ -417,14 +417,18 @@ export const entregarOS = createServerFn({ method: "POST" })
       if (eIt) throw new Error(eIt.message);
 
       const liquidado = data.metodo_pagamento !== "conta_corrente";
+      if (data.metodo_pagamento === "encontro_contas" && (data.nota_pagamento ?? "").trim().length < 3)
+        throw new Error("Descreva o motivo do encontro de contas.");
       const { error: eP } = await supabaseAdmin.from("pagamentos").insert({
         registo_id: reg.id,
         metodo: data.metodo_pagamento,
         valor: total,
+        notas: data.nota_pagamento?.trim() || null,
         liquidado,
         liquidado_em: liquidado ? new Date().toISOString() : null,
         liquidado_por: liquidado ? u.id : null,
       });
+
       if (eP) throw new Error(eP.message);
     }
 
