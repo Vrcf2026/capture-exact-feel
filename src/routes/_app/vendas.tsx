@@ -40,9 +40,16 @@ export const Route = createFileRoute("/_app/vendas")({
   component: NovaVendaPage,
 });
 
-type Metodo = "dinheiro" | "mb" | "transferencia" | "conta_corrente" | "cheque" | "outro";
+type Metodo =
+  | "dinheiro"
+  | "mb"
+  | "transferencia"
+  | "conta_corrente"
+  | "cheque"
+  | "encontro_contas"
+  | "outro";
 type Item = { key: string; catalogo_id: string | null; descricao: string; quantidade: number; preco_unitario: number };
-type Pag = { key: string; metodo: Metodo; valor: number };
+type Pag = { key: string; metodo: Metodo; valor: number; notas: string };
 
 const METODOS: { v: Metodo; label: string }[] = [
   { v: "dinheiro", label: "Dinheiro" },
@@ -50,8 +57,10 @@ const METODOS: { v: Metodo; label: string }[] = [
   { v: "transferencia", label: "Transferência" },
   { v: "conta_corrente", label: "Conta-corrente" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
 ];
+
 
 function uid() { return Math.random().toString(36).slice(2); }
 
