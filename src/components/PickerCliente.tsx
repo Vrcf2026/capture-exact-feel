@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+const LIMITE = 6;
 import { ChevronsUpDown, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -34,7 +36,18 @@ export function PickerCliente({
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
   const selecionado = value ? clientes.find((c) => c.id === value) : undefined;
+
+  const termo = busca.toLowerCase().trim();
+  const encontrados = useMemo(() => {
+    if (!termo) return clientes.slice(0, LIMITE);
+    return clientes.filter((c) =>
+      `${c.nome} ${c.nif ?? ""} ${c.telefone ?? ""} ${c.email ?? ""}`.toLowerCase().includes(termo),
+    );
+  }, [clientes, termo]);
+  const visiveis = encontrados.slice(0, LIMITE);
+  const restantes = encontrados.length - visiveis.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -54,32 +67,34 @@ export function PickerCliente({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[320px] p-0" align="start">
-        <Command
-          filter={(itemValue, search) =>
-            itemValue.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0
-          }
-        >
-          <CommandInput placeholder="Pesquisar cliente (nome, NIF, telefone)…" />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Pesquisar cliente (nome, NIF, telefone, email)…"
+            value={busca}
+            onValueChange={setBusca}
+          />
           <CommandList>
             <CommandEmpty>Sem clientes correspondentes.</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                value={semClienteLabel}
+                value="__sem_cliente__"
                 onSelect={() => {
                   onSelect(null);
+                  setBusca("");
                   setOpen(false);
                 }}
               >
                 {semClienteLabel}
               </CommandItem>
             </CommandGroup>
-            <CommandGroup heading="Clientes">
-              {clientes.map((c) => (
+            <CommandGroup heading={termo ? "Resultados" : "Clientes"}>
+              {visiveis.map((c) => (
                 <CommandItem
                   key={c.id}
-                  value={`${c.nome} ${c.nif ?? ""} ${c.telefone ?? ""} ${c.email ?? ""}`}
+                  value={c.id}
                   onSelect={() => {
                     onSelect(c);
+                    setBusca("");
                     setOpen(false);
                   }}
                 >
@@ -90,6 +105,13 @@ export function PickerCliente({
                 </CommandItem>
               ))}
             </CommandGroup>
+            <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+              {restantes > 0
+                ? `+${restantes} clientes — escreve nome, NIF ou telefone.`
+                : termo
+                  ? `${encontrados.length} resultado(s).`
+                  : `${clientes.length} clientes — escreve para pesquisar.`}
+            </div>
           </CommandList>
         </Command>
       </PopoverContent>

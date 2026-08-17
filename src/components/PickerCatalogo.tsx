@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/command";
 import { eur } from "@/lib/format";
 
+const LIMITE = 6;
+
 export interface ItemCatalogo {
   id: string;
   nome: string;
@@ -45,8 +47,19 @@ export function PickerCatalogo({
   extraOption?: { label: string; onSelect: () => void; selected?: boolean };
 }) {
   const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
   const ativos = useMemo(() => itens.filter((i) => i.ativo !== false), [itens]);
   const selecionado = value ? itens.find((i) => i.id === value) : undefined;
+
+  const termo = busca.toLowerCase().trim();
+  const encontrados = useMemo(() => {
+    if (!termo) return ativos.slice(0, LIMITE);
+    return ativos.filter((i) =>
+      `${i.codigo ?? ""} ${i.nome}`.toLowerCase().includes(termo),
+    );
+  }, [ativos, termo]);
+  const visiveis = encontrados.slice(0, LIMITE);
+  const restantes = encontrados.length - visiveis.length;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -70,12 +83,8 @@ export function PickerCatalogo({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[360px] p-0" align="start">
-        <Command
-          filter={(itemValue, search) =>
-            itemValue.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0
-          }
-        >
-          <CommandInput placeholder={placeholder} />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder={placeholder} value={busca} onValueChange={setBusca} />
           <CommandList>
             <CommandEmpty>Sem artigos correspondentes.</CommandEmpty>
             {extraOption && (
@@ -92,13 +101,14 @@ export function PickerCatalogo({
                 </CommandItem>
               </CommandGroup>
             )}
-            <CommandGroup heading="Catálogo">
-              {ativos.map((i) => (
+            <CommandGroup heading={termo ? "Resultados" : "Mais usados"}>
+              {visiveis.map((i) => (
                 <CommandItem
                   key={i.id}
-                  value={`${i.codigo ?? ""} ${i.nome}`}
+                  value={i.id}
                   onSelect={() => {
                     onSelect(i);
+                    setBusca("");
                     setOpen(false);
                   }}
                 >
@@ -110,6 +120,13 @@ export function PickerCatalogo({
                 </CommandItem>
               ))}
             </CommandGroup>
+            <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+              {restantes > 0
+                ? `+${restantes} artigos — escreve o código ou nome para refinar.`
+                : termo
+                  ? `${encontrados.length} resultado(s).`
+                  : `${ativos.length} artigos no catálogo — escreve para pesquisar.`}
+            </div>
           </CommandList>
         </Command>
       </PopoverContent>
