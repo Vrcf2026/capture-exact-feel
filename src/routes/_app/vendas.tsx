@@ -141,16 +141,20 @@ function NovaVendaPage() {
   });
 
   const conta = pags.some((p) => p.metodo === "conta_corrente");
-  const podeSubmeter =
-    pronto &&
-    itens.length > 0 &&
-    itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
-    somaPag > 0 &&
-    Math.abs(somaPag - total) < 0.01 &&
-    (!conta || clienteId) &&
-    pags.every(
-      (p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3,
-    );
+  const motivoBloqueio = (() => {
+    if (caixaFechada) return "Caixa fechada — abra a caixa do dia para registar vendas.";
+    if (!pronto) return "Identifique o vendedor para continuar.";
+    if (itens.length === 0) return "Adicione pelo menos um item.";
+    if (!itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0))
+      return "Há linhas incompletas: preencha descrição, quantidade e preço.";
+    if (somaPag <= 0) return "Indique ao menos um pagamento com valor.";
+    if (Math.abs(somaPag - total) >= 0.01) return "O total dos pagamentos não coincide com o total da venda.";
+    if (conta && !clienteId) return "Conta-corrente exige um cliente selecionado.";
+    if (!pags.every((p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3))
+      return "Indique o motivo do encontro de contas (mín. 3 caracteres).";
+    return null;
+  })();
+  const podeSubmeter = !motivoBloqueio;
 
 
   return (
