@@ -284,7 +284,12 @@ function OSDetalhePage() {
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const jaEntregue = os.status === "entregue";
   const bloqueado = jaEntregue || !editando;
-  const podeEntregar = itens.length === 0 || total === 0 ? true : !!assinaturaEntrega;
+  const podeEntregar =
+    itens.length === 0 || total === 0
+      ? true
+      : !!assinaturaEntrega &&
+        (metodoPag !== "encontro_contas" || notaPag.trim().length >= 3);
+
 
   function guardarChecklist(novoChecklist: ChecklistItem[]) {
     campoM.mutate({ checklist: novoChecklist });
