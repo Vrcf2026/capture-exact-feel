@@ -419,10 +419,12 @@ export const criarVenda = createServerFn({ method: "POST" })
       caixa_diario_id: caixa.id,
       metodo: p.metodo,
       valor: p.valor,
+      notas: p.notas?.trim() || null,
       liquidado: p.metodo !== "conta_corrente",
       liquidado_em: p.metodo !== "conta_corrente" ? new Date().toISOString() : null,
       liquidado_por: p.metodo !== "conta_corrente" ? u.id : null,
     }));
+
     const { error: eP } = await supabaseAdmin.from("pagamentos").insert(pags);
     if (eP) throw new Error(eP.message);
 
