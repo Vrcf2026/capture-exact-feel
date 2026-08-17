@@ -1,0 +1,2 @@
+ALTER TABLE public.pagamentos DROP CONSTRAINT IF EXISTS pagamentos_metodo_check;
+ALTER TABLE public.pagamentos ADD CONSTRAINT pagamentos_metodo_check CHECK (metodo IN ('dinheiro','mb','transferencia','conta_corrente','cheque','encontro_contas','outro'));
