@@ -141,7 +141,11 @@ function NovaVendaPage() {
     itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
     somaPag > 0 &&
     Math.abs(somaPag - total) < 0.01 &&
-    (!conta || clienteId);
+    (!conta || clienteId) &&
+    pags.every(
+      (p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3,
+    );
+
 
   return (
     <div className="space-y-6">
