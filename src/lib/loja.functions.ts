@@ -637,6 +637,9 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const u = await requireLoja();
     await verificarPinVendedor(data.vendedor_id, data.vendedor_pin);
+    if (data.metodo === "encontro_contas" && (data.notas ?? "").trim().length < 3)
+      throw new Error("Descreva o motivo do encontro de contas.");
+
 
     const { data: caixa } = await supabaseAdmin
       .from("caixa_diario")
