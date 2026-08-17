@@ -136,6 +136,7 @@ function NovaVendaPage() {
           notas: notas || null,
         },
       }),
+    meta: { success: "Venda registada." },
     onSuccess: (r) => navigate({ to: "/registos/$id", params: { id: r.id } }),
   });
 
