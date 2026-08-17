@@ -135,6 +135,8 @@ function OSDetalhePage() {
   const [testes, setTestes] = useState(false);
   const [valorTotalPagoStr, setValorTotalPagoStr] = useState<string | null>(null);
   const [metodoPag, setMetodoPag] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
+  const [notaPag, setNotaPag] = useState("");
+
   const [novoItemCatalogo, setNovoItemCatalogo] = useState<string>("_livre");
   const [novaDesc, setNovaDesc] = useState("");
   const [novaQtd, setNovaQtd] = useState("1");
