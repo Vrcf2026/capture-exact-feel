@@ -353,8 +353,18 @@ const entregaSchema = z.object({
   limpeza_efetuada: z.boolean(),
   testes_finais_ok: z.boolean(),
   valor_total_pago: z.number().min(0).optional().nullable(),
-  metodo_pagamento: z.enum(["dinheiro", "mb", "transferencia", "conta_corrente", "cheque", "outro"]),
+  metodo_pagamento: z.enum([
+    "dinheiro",
+    "mb",
+    "transferencia",
+    "conta_corrente",
+    "cheque",
+    "encontro_contas",
+    "outro",
+  ]),
+  nota_pagamento: z.string().trim().max(500).optional().nullable(),
 });
+
 
 export const entregarOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => entregaSchema.parse(d))
