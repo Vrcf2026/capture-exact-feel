@@ -150,13 +150,21 @@ function RegistoPage() {
                 <TableBody>
                   {data.pagamentos.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="capitalize">{String(p.metodo).replace("_", " ")}</TableCell>
+                      <TableCell className="capitalize">
+                        {String(p.metodo).replace(/_/g, " ")}
+                        {p.notas && (
+                          <span className="mt-0.5 block text-xs normal-case text-muted-foreground">
+                            {p.notas}
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right mono">{eur(p.valor)}</TableCell>
                       <TableCell>
                         {p.liquidado ? <Badge variant="outline">Sim</Badge> : <Badge variant="secondary">Não</Badge>}
                       </TableCell>
                     </TableRow>
                   ))}
+
                 </TableBody>
               </Table>
             </CardContent>
