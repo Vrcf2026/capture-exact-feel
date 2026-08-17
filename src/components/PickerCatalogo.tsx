@@ -57,6 +57,9 @@ export function PickerCatalogo({
 }) {
   const [open, setOpen] = useState(false);
   const [busca, setBusca] = useState("");
+  const [listaAberta, setListaAberta] = useState(false);
+  const [buscaLista, setBuscaLista] = useState("");
+
   const ativos = useMemo(() => itens.filter((i) => i.ativo !== false), [itens]);
   const selecionado = value ? itens.find((i) => i.id === value) : undefined;
 
