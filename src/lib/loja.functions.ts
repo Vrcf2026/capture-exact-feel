@@ -55,6 +55,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     mb: 0,
     transferencia: 0,
     cheque: 0,
+    encontro_contas: 0,
     outro: 0,
     conta_corrente: 0,
     numPagamentos: (pagamentos ?? []).length,
@@ -78,6 +79,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     mb: totais.mb,
     transferencia: totais.transferencia,
     cheque: totais.cheque,
+    encontro_contas: totais.encontro_contas,
     outro: totais.outro,
     conta_corrente: totais.conta_corrente,
     numPagamentos: totais.numPagamentos,
@@ -86,6 +88,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     liquidacoes: totais.liquidacoes,
     saldoEsperado,
   };
+
 }
 
 export const caixaAberto = createServerFn({ method: "GET" }).handler(async () => {
