@@ -81,7 +81,9 @@ const METODOS = [
   { v: "transferencia", label: "Transferência" },
   { v: "conta_corrente", label: "Conta-corrente" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
+
 ] as const;
 
 function ficheiroParaDataUrlReduzido(file: File, maxDim = 1600, qualidade = 0.8): Promise<string> {
