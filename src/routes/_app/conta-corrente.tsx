@@ -75,18 +75,27 @@ function LiquidarDialog({
   const [open, setOpen] = useState(false);
   const [valor, setValor] = useState(divida.saldo);
   const [metodo, setMetodo] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
+  const [motivo, setMotivo] = useState("");
 
   const liq = useServerFn(liquidarPagamento);
   const m = useMutation({
     mutationFn: () =>
       liq({
-        data: { pagamento_id: divida.id, valor, metodo, vendedor_id: vendedorId, vendedor_pin: vendedorPin },
+        data: {
+          pagamento_id: divida.id,
+          valor,
+          metodo,
+          notas: motivo.trim() || null,
+          vendedor_id: vendedorId,
+          vendedor_pin: vendedorPin,
+        },
       }),
     onSuccess: () => {
       setOpen(false);
       onDone();
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
