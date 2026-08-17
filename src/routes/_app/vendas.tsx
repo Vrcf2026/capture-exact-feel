@@ -165,6 +165,17 @@ function NovaVendaPage() {
         <p className="text-sm text-muted-foreground">Registo com múltiplos itens e formas de pagamento.</p>
       </div>
 
+      {caixaFechada && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <div className="text-sm font-medium text-destructive">
+            Caixa fechada — não é possível registar vendas sem abrir a caixa do dia.
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/caixa">Abrir caixa</Link>
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Card>
