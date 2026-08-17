@@ -307,7 +307,9 @@ type Totais = {
   mb: number;
   transferencia: number;
   cheque: number;
+  encontro_contas: number;
   outro: number;
+
   conta_corrente: number;
   numPagamentos: number;
   sangrias: number;
