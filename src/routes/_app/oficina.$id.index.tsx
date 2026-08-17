@@ -805,8 +805,20 @@ function OSDetalhePage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {metodoPag === "encontro_contas" && (
+                    <div className="space-y-1.5 rounded-md border bg-muted/40 p-2">
+                      <Label className="text-xs">Motivo do encontro de contas *</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Descreva o que originou o encontro de contas…"
+                        value={notaPag}
+                        onChange={(e) => setNotaPag(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
+
             </div>
             <div className="space-y-2">
               <SignaturePad
