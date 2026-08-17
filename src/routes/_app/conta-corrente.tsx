@@ -56,8 +56,10 @@ const METODOS = [
   { v: "mb", label: "Multibanco" },
   { v: "transferencia", label: "Transferência" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
 ] as const;
+
 
 function LiquidarDialog({
   divida,
