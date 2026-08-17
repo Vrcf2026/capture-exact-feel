@@ -623,10 +623,12 @@ export const listContaCorrente = createServerFn({ method: "GET" }).handler(async
 const liquidarSchema = {
   pagamento_id: z.string().uuid(),
   valor: z.number().positive(),
-  metodo: z.enum(["dinheiro", "mb", "transferencia", "cheque", "outro"]),
+  metodo: z.enum(["dinheiro", "mb", "transferencia", "cheque", "encontro_contas", "outro"]),
+  notas: z.string().trim().max(500).optional().nullable(),
   vendedor_id: z.string().uuid(),
   vendedor_pin: z.string().regex(/^\d{4,8}$/, "PIN inválido."),
 };
+
 
 export const liquidarPagamento = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object(liquidarSchema).parse(d))
