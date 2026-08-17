@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { criarVenda } from "@/lib/loja.functions";
+import { criarVenda, caixaAberto } from "@/lib/loja.functions";
 import { listCatalogo, listClientes } from "@/lib/admin.functions";
 import { useVendedorObrigatorio } from "@/components/IdentificarVendedor";
 import { PickerCatalogo } from "@/components/PickerCatalogo";
