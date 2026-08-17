@@ -353,8 +353,18 @@ const entregaSchema = z.object({
   limpeza_efetuada: z.boolean(),
   testes_finais_ok: z.boolean(),
   valor_total_pago: z.number().min(0).optional().nullable(),
-  metodo_pagamento: z.enum(["dinheiro", "mb", "transferencia", "conta_corrente", "cheque", "outro"]),
+  metodo_pagamento: z.enum([
+    "dinheiro",
+    "mb",
+    "transferencia",
+    "conta_corrente",
+    "cheque",
+    "encontro_contas",
+    "outro",
+  ]),
+  nota_pagamento: z.string().trim().max(500).optional().nullable(),
 });
+
 
 export const entregarOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => entregaSchema.parse(d))
@@ -407,14 +417,18 @@ export const entregarOS = createServerFn({ method: "POST" })
       if (eIt) throw new Error(eIt.message);
 
       const liquidado = data.metodo_pagamento !== "conta_corrente";
+      if (data.metodo_pagamento === "encontro_contas" && (data.nota_pagamento ?? "").trim().length < 3)
+        throw new Error("Descreva o motivo do encontro de contas.");
       const { error: eP } = await supabaseAdmin.from("pagamentos").insert({
         registo_id: reg.id,
         metodo: data.metodo_pagamento,
         valor: total,
+        notas: data.nota_pagamento?.trim() || null,
         liquidado,
         liquidado_em: liquidado ? new Date().toISOString() : null,
         liquidado_por: liquidado ? u.id : null,
       });
+
       if (eP) throw new Error(eP.message);
     }
 

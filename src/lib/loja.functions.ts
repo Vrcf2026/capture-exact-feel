@@ -55,6 +55,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     mb: 0,
     transferencia: 0,
     cheque: 0,
+    encontro_contas: 0,
     outro: 0,
     conta_corrente: 0,
     numPagamentos: (pagamentos ?? []).length,
@@ -78,6 +79,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     mb: totais.mb,
     transferencia: totais.transferencia,
     cheque: totais.cheque,
+    encontro_contas: totais.encontro_contas,
     outro: totais.outro,
     conta_corrente: totais.conta_corrente,
     numPagamentos: totais.numPagamentos,
@@ -86,6 +88,7 @@ async function calcularTotais(caixaId: string, saldoInicial: number) {
     liquidacoes: totais.liquidacoes,
     saldoEsperado,
   };
+
 }
 
 export const caixaAberto = createServerFn({ method: "GET" }).handler(async () => {
@@ -325,10 +328,25 @@ const itemSchema = z.object({
   quantidade: z.number().positive(),
   preco_unitario: z.number().min(0),
 });
-const pagamentoSchema = z.object({
-  metodo: z.enum(["dinheiro", "mb", "transferencia", "conta_corrente", "cheque", "outro"]),
-  valor: z.number().positive(),
-});
+const pagamentoSchema = z
+  .object({
+    metodo: z.enum([
+      "dinheiro",
+      "mb",
+      "transferencia",
+      "conta_corrente",
+      "cheque",
+      "encontro_contas",
+      "outro",
+    ]),
+    valor: z.number().positive(),
+    notas: z.string().trim().max(500).optional().nullable(),
+  })
+  .refine((p) => p.metodo !== "encontro_contas" || (p.notas ?? "").trim().length >= 3, {
+    message: "Descreva o motivo do encontro de contas.",
+    path: ["notas"],
+  });
+
 const vendaSchema = z.object({
   cliente_id: z.string().uuid().nullable().optional(),
   vendedor_id: z.string().uuid(),
@@ -404,10 +422,12 @@ export const criarVenda = createServerFn({ method: "POST" })
       caixa_diario_id: caixa.id,
       metodo: p.metodo,
       valor: p.valor,
+      notas: p.notas?.trim() || null,
       liquidado: p.metodo !== "conta_corrente",
       liquidado_em: p.metodo !== "conta_corrente" ? new Date().toISOString() : null,
       liquidado_por: p.metodo !== "conta_corrente" ? u.id : null,
     }));
+
     const { error: eP } = await supabaseAdmin.from("pagamentos").insert(pags);
     if (eP) throw new Error(eP.message);
 
@@ -603,10 +623,12 @@ export const listContaCorrente = createServerFn({ method: "GET" }).handler(async
 const liquidarSchema = {
   pagamento_id: z.string().uuid(),
   valor: z.number().positive(),
-  metodo: z.enum(["dinheiro", "mb", "transferencia", "cheque", "outro"]),
+  metodo: z.enum(["dinheiro", "mb", "transferencia", "cheque", "encontro_contas", "outro"]),
+  notas: z.string().trim().max(500).optional().nullable(),
   vendedor_id: z.string().uuid(),
   vendedor_pin: z.string().regex(/^\d{4,8}$/, "PIN inválido."),
 };
+
 
 export const liquidarPagamento = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object(liquidarSchema).parse(d))
@@ -615,6 +637,9 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const u = await requireLoja();
     await verificarPinVendedor(data.vendedor_id, data.vendedor_pin);
+    if (data.metodo === "encontro_contas" && (data.notas ?? "").trim().length < 3)
+      throw new Error("Descreva o motivo do encontro de contas.");
+
 
     const { data: caixa } = await supabaseAdmin
       .from("caixa_diario")
@@ -648,6 +673,8 @@ export const liquidarPagamento = createServerFn({ method: "POST" })
       caixa_diario_id: caixa.id,
       metodo: data.metodo,
       valor: data.valor,
+      notas: data.notas?.trim() || null,
+
       liquidado: true,
       liquidado_em: new Date().toISOString(),
       liquidado_por: u.id,

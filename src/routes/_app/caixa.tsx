@@ -307,7 +307,9 @@ type Totais = {
   mb: number;
   transferencia: number;
   cheque: number;
+  encontro_contas: number;
   outro: number;
+
   conta_corrente: number;
   numPagamentos: number;
   sangrias: number;
@@ -409,10 +411,13 @@ function CaixaAberto({
           <div className="grid grid-cols-3 gap-3 text-xs text-muted-foreground">
             <div>MB: {eur(totais.mb)}</div>
             <div>Transferência: {eur(totais.transferencia)}</div>
+            <div>Cheque: {eur(totais.cheque)}</div>
+            <div>Encontro de contas: {eur(totais.encontro_contas)}</div>
             <div>Sangrias: {eur(totais.sangrias)}</div>
             <div>Despesas: {eur(totais.despesas)}</div>
             <div>{totais.numPagamentos} pagamento(s)</div>
           </div>
+
           {totais.conta_corrente > 0 && (
             <div className="rounded-lg border bg-amber-50 border-amber-200 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-100">
               Vendas a crédito hoje: <strong>{eur(totais.conta_corrente)}</strong> — não entram na

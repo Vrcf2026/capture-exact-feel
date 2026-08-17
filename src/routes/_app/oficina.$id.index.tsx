@@ -81,7 +81,9 @@ const METODOS = [
   { v: "transferencia", label: "Transferência" },
   { v: "conta_corrente", label: "Conta-corrente" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
+
 ] as const;
 
 function ficheiroParaDataUrlReduzido(file: File, maxDim = 1600, qualidade = 0.8): Promise<string> {
@@ -133,6 +135,8 @@ function OSDetalhePage() {
   const [testes, setTestes] = useState(false);
   const [valorTotalPagoStr, setValorTotalPagoStr] = useState<string | null>(null);
   const [metodoPag, setMetodoPag] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
+  const [notaPag, setNotaPag] = useState("");
+
   const [novoItemCatalogo, setNovoItemCatalogo] = useState<string>("_livre");
   const [novaDesc, setNovaDesc] = useState("");
   const [novaQtd, setNovaQtd] = useState("1");
@@ -219,6 +223,8 @@ function OSDetalhePage() {
           testes_finais_ok: testes,
           valor_total_pago: valorTotalPagoStr ? Number(valorTotalPagoStr) : null,
           metodo_pagamento: metodoPag,
+          nota_pagamento: notaPag.trim() || null,
+
         },
       }),
     onSuccess: () => {
@@ -278,7 +284,12 @@ function OSDetalhePage() {
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const jaEntregue = os.status === "entregue";
   const bloqueado = jaEntregue || !editando;
-  const podeEntregar = itens.length === 0 || total === 0 ? true : !!assinaturaEntrega;
+  const podeEntregar =
+    itens.length === 0 || total === 0
+      ? true
+      : !!assinaturaEntrega &&
+        (metodoPag !== "encontro_contas" || notaPag.trim().length >= 3);
+
 
   function guardarChecklist(novoChecklist: ChecklistItem[]) {
     campoM.mutate({ checklist: novoChecklist });
@@ -805,8 +816,20 @@ function OSDetalhePage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {metodoPag === "encontro_contas" && (
+                    <div className="space-y-1.5 rounded-md border bg-muted/40 p-2">
+                      <Label className="text-xs">Motivo do encontro de contas *</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Descreva o que originou o encontro de contas…"
+                        value={notaPag}
+                        onChange={(e) => setNotaPag(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
+
             </div>
             <div className="space-y-2">
               <SignaturePad

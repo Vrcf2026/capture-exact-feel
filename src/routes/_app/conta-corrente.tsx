@@ -8,6 +8,8 @@ import { eur, dt } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -56,8 +58,10 @@ const METODOS = [
   { v: "mb", label: "Multibanco" },
   { v: "transferencia", label: "Transferência" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
 ] as const;
+
 
 function LiquidarDialog({
   divida,
@@ -73,18 +77,27 @@ function LiquidarDialog({
   const [open, setOpen] = useState(false);
   const [valor, setValor] = useState(divida.saldo);
   const [metodo, setMetodo] = useState<(typeof METODOS)[number]["v"]>("dinheiro");
+  const [motivo, setMotivo] = useState("");
 
   const liq = useServerFn(liquidarPagamento);
   const m = useMutation({
     mutationFn: () =>
       liq({
-        data: { pagamento_id: divida.id, valor, metodo, vendedor_id: vendedorId, vendedor_pin: vendedorPin },
+        data: {
+          pagamento_id: divida.id,
+          valor,
+          metodo,
+          notas: motivo.trim() || null,
+          vendedor_id: vendedorId,
+          vendedor_pin: vendedorPin,
+        },
       }),
     onSuccess: () => {
       setOpen(false);
       onDone();
     },
   });
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -115,15 +128,32 @@ function LiquidarDialog({
               </Select>
             </div>
           </div>
+          {metodo === "encontro_contas" && (
+            <div className="space-y-1.5 rounded-md border border-border bg-muted/40 p-2">
+              <Label className="text-xs">Motivo do encontro de contas *</Label>
+              <Textarea
+                rows={3}
+                placeholder="Descreva o que originou o encontro de contas…"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+              />
+            </div>
+          )}
           {m.error && <p className="text-sm text-destructive">{(m.error as Error).message}</p>}
         </div>
         <DialogFooter>
           <Button
             onClick={() => m.mutate()}
-            disabled={m.isPending || valor <= 0 || valor > divida.saldo}
+            disabled={
+              m.isPending ||
+              valor <= 0 ||
+              valor > divida.saldo ||
+              (metodo === "encontro_contas" && motivo.trim().length < 3)
+            }
           >
             {m.isPending ? "A registar…" : "Confirmar recebimento"}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -40,9 +40,16 @@ export const Route = createFileRoute("/_app/vendas")({
   component: NovaVendaPage,
 });
 
-type Metodo = "dinheiro" | "mb" | "transferencia" | "conta_corrente" | "cheque" | "outro";
+type Metodo =
+  | "dinheiro"
+  | "mb"
+  | "transferencia"
+  | "conta_corrente"
+  | "cheque"
+  | "encontro_contas"
+  | "outro";
 type Item = { key: string; catalogo_id: string | null; descricao: string; quantidade: number; preco_unitario: number };
-type Pag = { key: string; metodo: Metodo; valor: number };
+type Pag = { key: string; metodo: Metodo; valor: number; notas: string };
 
 const METODOS: { v: Metodo; label: string }[] = [
   { v: "dinheiro", label: "Dinheiro" },
@@ -50,8 +57,10 @@ const METODOS: { v: Metodo; label: string }[] = [
   { v: "transferencia", label: "Transferência" },
   { v: "conta_corrente", label: "Conta-corrente" },
   { v: "cheque", label: "Cheque" },
+  { v: "encontro_contas", label: "Encontro de contas" },
   { v: "outro", label: "Outro" },
 ];
+
 
 function uid() { return Math.random().toString(36).slice(2); }
 
@@ -67,7 +76,10 @@ function NovaVendaPage() {
     { key: uid(), catalogo_id: null, descricao: "", quantidade: 1, preco_unitario: 0 },
   ]);
 
-  const [pags, setPags] = useState<Pag[]>([{ key: uid(), metodo: "dinheiro", valor: 0 }]);
+  const [pags, setPags] = useState<Pag[]>([
+    { key: uid(), metodo: "dinheiro", valor: 0, notas: "" },
+  ]);
+
   const [notas, setNotas] = useState("");
 
   const total = useMemo(
@@ -115,7 +127,7 @@ function NovaVendaPage() {
           })),
           pagamentos: pags
             .filter((p) => p.valor > 0)
-            .map((p) => ({ metodo: p.metodo, valor: p.valor })),
+            .map((p) => ({ metodo: p.metodo, valor: p.valor, notas: p.notas.trim() || null })),
           notas: notas || null,
         },
       }),
@@ -129,7 +141,11 @@ function NovaVendaPage() {
     itens.every((i) => i.descricao.trim() && i.quantidade > 0 && i.preco_unitario >= 0) &&
     somaPag > 0 &&
     Math.abs(somaPag - total) < 0.01 &&
-    (!conta || clienteId);
+    (!conta || clienteId) &&
+    pags.every(
+      (p) => p.valor <= 0 || p.metodo !== "encontro_contas" || p.notas.trim().length >= 3,
+    );
+
 
   return (
     <div className="space-y-6">
@@ -263,42 +279,58 @@ function NovaVendaPage() {
               <CardTitle className="text-base">Pagamentos</CardTitle>
               <Button
                 size="sm" variant="outline"
-                onClick={() => setPags([...pags, { key: uid(), metodo: "dinheiro", valor: 0 }])}
+                onClick={() => setPags([...pags, { key: uid(), metodo: "dinheiro", valor: 0, notas: "" }])}
               >
                 <Plus className="h-4 w-4 mr-1" /> Adicionar
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
               {pags.map((p, idx) => (
-                <div key={p.key} className="grid grid-cols-[1fr_120px_auto] gap-2 items-center">
-                  <Select
-                    value={p.metodo}
-                    onValueChange={(v) => {
-                      const c = [...pags]; c[idx] = { ...p, metodo: v as Metodo }; setPags(c);
-                    }}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {METODOS.map((m) => <SelectItem key={m.v} value={m.v}>{m.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    className="text-right mono"
-                    type="number" step="0.01" min="0"
-                    value={p.valor}
-                    onChange={(e) => {
-                      const c = [...pags]; c[idx] = { ...p, valor: Number(e.target.value) }; setPags(c);
-                    }}
-                  />
-                  <Button
-                    size="icon" variant="ghost"
-                    onClick={() => setPags(pags.filter((_, i) => i !== idx))}
-                    disabled={pags.length <= 1}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                <div key={p.key} className="space-y-2">
+                  <div className="grid grid-cols-[1fr_120px_auto] gap-2 items-center">
+                    <Select
+                      value={p.metodo}
+                      onValueChange={(v) => {
+                        const c = [...pags]; c[idx] = { ...p, metodo: v as Metodo }; setPags(c);
+                      }}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {METODOS.map((m) => <SelectItem key={m.v} value={m.v}>{m.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="text-right mono"
+                      type="number" step="0.01" min="0"
+                      value={p.valor}
+                      onChange={(e) => {
+                        const c = [...pags]; c[idx] = { ...p, valor: Number(e.target.value) }; setPags(c);
+                      }}
+                    />
+                    <Button
+                      size="icon" variant="ghost"
+                      onClick={() => setPags(pags.filter((_, i) => i !== idx))}
+                      disabled={pags.length <= 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {p.metodo === "encontro_contas" && (
+                    <div className="space-y-1 rounded-md border border-border bg-muted/40 p-2">
+                      <Label className="text-xs">Motivo do encontro de contas *</Label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Ex.: acerto de fatura de fornecedor / troca de serviço prestado…"
+                        value={p.notas}
+                        onChange={(e) => {
+                          const c = [...pags]; c[idx] = { ...p, notas: e.target.value }; setPags(c);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
+
               <Button
                 size="sm" variant="secondary"
                 onClick={() => {
