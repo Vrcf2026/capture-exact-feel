@@ -223,6 +223,8 @@ function OSDetalhePage() {
           testes_finais_ok: testes,
           valor_total_pago: valorTotalPagoStr ? Number(valorTotalPagoStr) : null,
           metodo_pagamento: metodoPag,
+          nota_pagamento: notaPag.trim() || null,
+
         },
       }),
     onSuccess: () => {
