@@ -73,75 +73,152 @@ export function PickerCatalogo({
   const visiveis = encontrados.slice(0, LIMITE);
   const restantes = encontrados.length - visiveis.length;
 
+  const termoLista = buscaLista.toLowerCase().trim();
+  const listaCompleta = useMemo(() => {
+    const base = [...ativos].sort((a, b) =>
+      `${a.codigo ?? ""}${a.nome}`.localeCompare(`${b.codigo ?? ""}${b.nome}`, "pt"),
+    );
+    if (!termoLista) return base;
+    return base.filter((i) => `${i.codigo ?? ""} ${i.nome}`.toLowerCase().includes(termoLista));
+  }, [ativos, termoLista]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={`justify-between font-normal ${className ?? "w-[260px]"}`}
-        >
-          <span className="flex min-w-0 items-center gap-2 truncate">
-            <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate">
-              {selecionado
-                ? `${selecionado.codigo ? `${selecionado.codigo} · ` : ""}${selecionado.nome}`
-                : (triggerLabel ?? "Adicionar do catálogo…")}
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={`justify-between font-normal ${className ?? "w-[260px]"}`}
+          >
+            <span className="flex min-w-0 items-center gap-2 truncate">
+              <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate">
+                {selecionado
+                  ? `${selecionado.codigo ? `${selecionado.codigo} · ` : ""}${selecionado.nome}`
+                  : (triggerLabel ?? "Adicionar do catálogo…")}
+              </span>
             </span>
-          </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder={placeholder} value={busca} onValueChange={setBusca} />
-          <CommandList>
-            <CommandEmpty>Sem artigos correspondentes.</CommandEmpty>
-            {extraOption && (
-              <CommandGroup>
-                <CommandItem
-                  value={extraOption.label}
-                  onSelect={() => {
-                    extraOption.onSelect();
-                    setOpen(false);
-                  }}
-                >
-                  {extraOption.selected && <Check className="mr-2 h-4 w-4" />}
-                  {extraOption.label}
-                </CommandItem>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[360px] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandInput placeholder={placeholder} value={busca} onValueChange={setBusca} />
+            <CommandList>
+              <CommandEmpty>Sem artigos correspondentes.</CommandEmpty>
+              {extraOption && (
+                <CommandGroup>
+                  <CommandItem
+                    value={extraOption.label}
+                    onSelect={() => {
+                      extraOption.onSelect();
+                      setOpen(false);
+                    }}
+                  >
+                    {extraOption.selected && <Check className="mr-2 h-4 w-4" />}
+                    {extraOption.label}
+                  </CommandItem>
+                </CommandGroup>
+              )}
+              <CommandGroup heading={termo ? "Resultados" : "Mais usados"}>
+                {visiveis.map((i) => (
+                  <CommandItem
+                    key={i.id}
+                    value={i.id}
+                    onSelect={() => {
+                      onSelect(i);
+                      setBusca("");
+                      setOpen(false);
+                    }}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      {i.codigo && <span className="mono text-xs text-muted-foreground">{i.codigo}</span>}
+                      <span className="truncate">{i.nome}</span>
+                    </span>
+                    <span className="mono ml-2 text-xs text-muted-foreground">{eur(Number(i.preco))}</span>
+                  </CommandItem>
+                ))}
               </CommandGroup>
-            )}
-            <CommandGroup heading={termo ? "Resultados" : "Mais usados"}>
-              {visiveis.map((i) => (
-                <CommandItem
-                  key={i.id}
-                  value={i.id}
-                  onSelect={() => {
-                    onSelect(i);
-                    setBusca("");
+              <div className="space-y-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                <p>
+                  {restantes > 0
+                    ? `+${restantes} artigos — escreve o código ou nome para refinar.`
+                    : termo
+                      ? `${encontrados.length} resultado(s).`
+                      : `${ativos.length} artigos no catálogo — escreve para pesquisar.`}
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setBuscaLista(busca);
                     setOpen(false);
+                    setListaAberta(true);
                   }}
                 >
-                  <span className="flex min-w-0 flex-1 items-center gap-2">
-                    {i.codigo && <span className="mono text-xs text-muted-foreground">{i.codigo}</span>}
-                    <span className="truncate">{i.nome}</span>
-                  </span>
-                  <span className="mono ml-2 text-xs text-muted-foreground">{eur(Number(i.preco))}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-            <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-              {restantes > 0
-                ? `+${restantes} artigos — escreve o código ou nome para refinar.`
-                : termo
-                  ? `${encontrados.length} resultado(s).`
-                  : `${ativos.length} artigos no catálogo — escreve para pesquisar.`}
-            </div>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                  <List className="mr-2 h-4 w-4" />
+                  Ver lista completa
+                </Button>
+              </div>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      <Dialog open={listaAberta} onOpenChange={setListaAberta}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" /> Catálogo completo
+            </DialogTitle>
+            <DialogDescription>
+              {listaCompleta.length} artigo(s) — clica numa linha para escolher.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              autoFocus
+              className="pl-9"
+              placeholder="Filtrar por código ou nome…"
+              value={buscaLista}
+              onChange={(e) => setBuscaLista(e.target.value)}
+            />
+          </div>
+          <div className="max-h-[55vh] divide-y divide-border overflow-y-auto rounded-md border border-border">
+            {listaCompleta.length === 0 && (
+              <p className="p-4 text-sm text-muted-foreground">Sem artigos correspondentes.</p>
+            )}
+            {listaCompleta.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
+                onClick={() => {
+                  onSelect(i);
+                  setBusca("");
+                  setBuscaLista("");
+                  setListaAberta(false);
+                }}
+              >
+                {i.codigo && (
+                  <span className="mono w-20 shrink-0 text-xs text-muted-foreground">{i.codigo}</span>
+                )}
+                <span className="min-w-0 flex-1 truncate">{i.nome}</span>
+                <span className="mono shrink-0 text-xs text-muted-foreground">
+                  {eur(Number(i.preco))}
+                </span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
