@@ -127,7 +127,7 @@ function NovaVendaPage() {
           })),
           pagamentos: pags
             .filter((p) => p.valor > 0)
-            .map((p) => ({ metodo: p.metodo, valor: p.valor })),
+            .map((p) => ({ metodo: p.metodo, valor: p.valor, notas: p.notas.trim() || null })),
           notas: notas || null,
         },
       }),
