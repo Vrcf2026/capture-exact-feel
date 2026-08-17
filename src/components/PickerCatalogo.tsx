@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Package } from "lucide-react";
+import { Check, ChevronsUpDown, List, Package, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -13,6 +21,7 @@ import {
 import { eur } from "@/lib/format";
 
 const LIMITE = 6;
+
 
 export interface ItemCatalogo {
   id: string;
