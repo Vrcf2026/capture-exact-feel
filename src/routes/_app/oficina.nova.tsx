@@ -513,7 +513,11 @@ function NovaOSPage() {
         </CardHeader>
         <CardContent>
           <SignaturePad
-            label="Assinatura do cliente (aceitação de termos) *"
+            label={
+              clienteRapido
+                ? "Assinatura do cliente (opcional em cliente rápido)"
+                : "Assinatura do cliente (aceitação de termos) *"
+            }
             value={assinatura}
             onChange={setAssinatura}
           />
