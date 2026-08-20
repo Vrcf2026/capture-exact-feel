@@ -116,7 +116,12 @@ function BotaoGuardar({ onGuardar }: { onGuardar: () => void }) {
 
 function NovaOSPage() {
   const navigate = useNavigate();
-  const { data: clientes = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes"],
+    queryFn: () => listClientes(),
+    retry: 2,
+    retryDelay: 800,
+  });
   const criar = useServerFn(criarOS);
   const enviarAnexo = useServerFn(uploadAnexoOS);
 
