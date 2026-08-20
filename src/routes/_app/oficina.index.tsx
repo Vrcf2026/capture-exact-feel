@@ -59,9 +59,18 @@ function OficinaPage() {
     queryFn: () => listOS({ data: { status: null, q } }),
   });
 
+  const [alvo, setAlvo] = useState<{ id: string; numero: number } | null>(null);
+  const [adminPassword, setAdminPassword] = useState("");
+
   const eliminarM = useMutation({
-    mutationFn: (id: string) => eliminar({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["os-lista"] }),
+    mutationFn: (v: { id: string; admin_password: string }) => eliminar({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["os-lista"] });
+      toast.success("Ordem de serviço eliminada.");
+      setAlvo(null);
+      setAdminPassword("");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const visiveis = q.trim() ? os : os.filter((o) => filterStatuses.includes(o.status as StatusOS));
