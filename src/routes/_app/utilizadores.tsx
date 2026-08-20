@@ -176,6 +176,9 @@ function EditDialog({
               <Label>Ativo</Label>
             </div>
           </div>
+          {state.password.length > 0 && state.password.length < 6 && (
+            <div className="text-sm text-destructive">A password tem de ter pelo menos 6 caracteres.</div>
+          )}
           {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
         </div>
         <DialogFooter>
@@ -185,7 +188,12 @@ function EditDialog({
               const payload = { ...state, password: state.password || undefined };
               m.mutate(payload);
             }}
-            disabled={m.isPending || !state.nome.trim() || (!item.id && !state.password)}
+            disabled={
+              m.isPending ||
+              !state.nome.trim() ||
+              (!item.id && state.password.length < 6) ||
+              (state.password.length > 0 && state.password.length < 6)
+            }
           >
             {m.isPending ? "A guardar…" : "Guardar"}
           </Button>
