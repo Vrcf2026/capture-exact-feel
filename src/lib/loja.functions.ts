@@ -581,6 +581,8 @@ export const anularRegisto = createServerFn({ method: "POST" })
           registo_id: data.id,
           stock_apos: novo,
           utilizador_id: u.id,
+          vendedor_id: regAnulado?.vendedor_id ?? null,
+
         });
       }
     }
