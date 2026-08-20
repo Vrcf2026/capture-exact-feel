@@ -29,7 +29,8 @@ Nova página **Backups** (só admin) para exportar todos os dados, mais um backu
 - Na página Backups: estado da ligação ao Drive, nome da pasta e último envio com sucesso; se o envio falhar, o backup fica sempre guardado no armazenamento interno e o erro é mostrado.
 
 
-## 4. Acesso
+## 5. Acesso
+
 
 - Entrada "Backups" na barra lateral visível apenas a admin.
 - Todas as operações validam no servidor que a sessão é de um admin; um operador que tente acessar recebe erro.
