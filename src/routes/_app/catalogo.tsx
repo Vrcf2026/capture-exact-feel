@@ -49,6 +49,7 @@ type Item = Awaited<ReturnType<typeof listCatalogo>>[number];
 function CatalogoPage() {
   const { currentUser } = AppRoute.useRouteContext();
   const isAdmin = currentUser.papel === "admin";
+  const podeEditar = isAdmin || currentUser.acesso_loja;
   const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const [q, setQ] = useState("");
@@ -75,7 +76,7 @@ function CatalogoPage() {
             Produtos e serviços partilhados entre Loja e Oficina.
           </p>
         </div>
-        {isAdmin && (
+        {podeEditar && (
           <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "", codigo: "", controla_stock: false, stock: 0, stock_minimo: 0 })}>
             <Plus className="h-4 w-4 mr-1" /> Novo item
           </Button>
@@ -102,13 +103,13 @@ function CatalogoPage() {
               <TableHead>Unidade</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead>Estado</TableHead>
-              {isAdmin && <TableHead className="w-12"></TableHead>}
+              {podeEditar && <TableHead className="w-12"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={podeEditar ? 9 : 8} className="text-center text-muted-foreground py-8">
                   Sem itens.
                 </TableCell>
               </TableRow>
@@ -142,20 +143,22 @@ function CatalogoPage() {
                       <Badge variant="destructive">Inativo</Badge>
                     )}
                   </TableCell>
-                  {isAdmin && (
+                  {podeEditar && (
                     <TableCell>
                       <Button size="icon" variant="ghost" onClick={() => setEditing(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          if (window.confirm(`Desativar "${i.nome}"?`)) delM.mutate(i.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {isAdmin && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            if (window.confirm(`Desativar "${i.nome}"?`)) delM.mutate(i.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
