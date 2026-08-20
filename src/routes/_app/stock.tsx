@@ -200,7 +200,9 @@ function StockPage() {
                         {m.stock_apos === null ? "—" : Number(m.stock_apos)}
                       </TableCell>
                       <TableCell className="text-sm">{m.motivo ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{m.vendedor?.nome ?? "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{m.utilizador?.nome ?? "—"}</TableCell>
+
                     </TableRow>
                   ))
                 )}
