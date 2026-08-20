@@ -42,3 +42,4 @@ Nova página **Backups** (só admin) para exportar todos os dados, mais um backu
 - ZIP gerado no cliente com `jszip` (única dependência nova); os CSV/JSON individuais não precisam de dependências.
 - Agendamento com `pg_cron` + `pg_net` a chamar `src/routes/api/public/backup-diario.ts`, protegido por um segredo `BACKUP_CRON_SECRET` verificado no handler.
 - O bucket `backups` fica privado com políticas deny-all (acesso só via service role e links temporários), igual ao `anexos`.
+- Envio para o Drive pelo connector Google Drive da Lovable (upload multipart via connector gateway), feito só no servidor.
