@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, ShoppingCart, Wrench, Boxes, Menu } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 type Tab = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
 
@@ -12,6 +12,7 @@ export function MobileTabBar({
   podeOficina: boolean;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { toggleSidebar } = useSidebar();
 
   const tabs: Tab[] = [{ to: "/dashboard", label: "Painel", icon: LayoutDashboard }];
   if (podeLoja) tabs.push({ to: "/vendas", label: "Venda", icon: ShoppingCart });
@@ -41,10 +42,14 @@ export function MobileTabBar({
           );
         })}
         <li>
-          <SidebarTrigger className="flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-none text-[11px] font-medium text-muted-foreground [&_svg]:size-5">
-            <Menu />
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="flex h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-muted-foreground"
+          >
+            <Menu className="h-5 w-5" />
             <span>Menu</span>
-          </SidebarTrigger>
+          </button>
         </li>
       </ul>
     </nav>
