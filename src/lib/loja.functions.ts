@@ -439,6 +439,8 @@ export const criarVenda = createServerFn({ method: "POST" })
           registo_id: reg.id,
           stock_apos: novo,
           utilizador_id: u.id,
+          vendedor_id,
+
         });
       }
     }
