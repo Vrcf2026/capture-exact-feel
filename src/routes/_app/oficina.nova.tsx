@@ -66,6 +66,7 @@ interface Rascunho {
   checklist: ChecklistItem[];
   acessorios: string[];
   assinatura: string;
+  observacoes?: string;
 }
 
 /** Reduz e comprime a foto antes de a guardar como anexo. */
@@ -137,6 +138,7 @@ function NovaOSPage() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>(DEFAULT_CHECKLIST);
   const [acessorios, setAcessorios] = useState<string[]>([]);
   const [assinatura, setAssinatura] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   // Fotos tiradas na receção (ex: dobradiça partida) — enviadas ao criar a OS.
   const [fotos, setFotos] = useState<{ nome: string; dataUrl: string }[]>([]);
   const [aProcessarFotos, setAProcessarFotos] = useState(false);
@@ -163,6 +165,7 @@ function NovaOSPage() {
         if (Array.isArray(d.checklist) && d.checklist.length > 0) setChecklist(d.checklist);
         if (Array.isArray(d.acessorios)) setAcessorios(d.acessorios);
         setAssinatura(d.assinatura ?? "");
+        setObservacoes(d.observacoes ?? "");
         setRestaurado(true);
       }
     } catch {
@@ -185,6 +188,7 @@ function NovaOSPage() {
       checklist,
       acessorios,
       assinatura,
+      observacoes,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -202,7 +206,7 @@ function NovaOSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     clienteRapido, clienteId, clienteNome, contacto, equipamento,
-    marcaModelo, numSerie, pin, sintomas, checklist, acessorios, assinatura,
+    marcaModelo, numSerie, pin, sintomas, checklist, acessorios, assinatura, observacoes,
   ]);
 
   function limparRascunho() {
@@ -243,6 +247,7 @@ function NovaOSPage() {
           sintomas_cliente: sintomas || null,
           checklist,
           acessorios,
+          observacoes: observacoes || null,
           assinatura_rececao: assinatura || null,
         },
       });
@@ -451,6 +456,18 @@ function NovaOSPage() {
               </div>
             ))}
           </div>
+
+          <div>
+            <Label>Observações gerais (texto livre)</Label>
+            <Textarea
+              rows={3}
+              placeholder="Aponte algo diferente do que existe na lista (ex: parafusos em falta, líquido derramado, avaria intermitente…)"
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+            />
+          </div>
+
+
 
           <div>
             <Label className="mb-2 block">Acessórios entregues</Label>
