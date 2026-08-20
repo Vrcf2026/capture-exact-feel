@@ -179,7 +179,7 @@ function StockPage() {
               <TableBody>
                 {movs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                       Sem movimentos.
                     </TableCell>
                   </TableRow>
