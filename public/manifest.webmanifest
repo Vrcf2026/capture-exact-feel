@@ -1,0 +1,22 @@
+{
+  "name": "VRCF — Loja & Oficina",
+  "short_name": "VRCF",
+  "description": "Gestão de loja de informática e oficina: caixa, vendas, folhas de obra e stocks.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#e08a2e",
+  "lang": "pt-PT",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nova venda", "url": "/vendas" },
+    { "name": "Nova OS", "url": "/oficina/nova" },
+    { "name": "Stocks", "url": "/stock" }
+  ]
+}
