@@ -5,13 +5,16 @@ import { useEffect, useRef, useState } from "react";
 import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X, PenLine } from "lucide-react";
 import {
   criarOS,
+  listTecnicos,
   uploadAnexoOS,
   DEFAULT_CHECKLIST,
   ACESSORIOS_OPTIONS,
   type ChecklistItem,
   type CheckStatus,
 } from "@/lib/oficina.functions";
-import { listClientes } from "@/lib/admin.functions";
+import { listClientes, getCompany } from "@/lib/admin.functions";
+import { generatePdfOS, type OSParaPdf } from "@/lib/generatePdfOS";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,6 +70,9 @@ interface Rascunho {
   acessorios: string[];
   assinatura: string;
   observacoes?: string;
+  acessoriosOutros?: string;
+  dataRececao?: string;
+  tecnicoId?: string | null;
 }
 
 /** Reduz e comprime a foto antes de a guardar como anexo. */
@@ -123,6 +129,8 @@ function NovaOSPage() {
     retry: 2,
     retryDelay: 800,
   });
+  const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos"], queryFn: () => listTecnicos() });
+  const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
   const criar = useServerFn(criarOS);
   const enviarAnexo = useServerFn(uploadAnexoOS);
 
@@ -139,6 +147,9 @@ function NovaOSPage() {
   const [acessorios, setAcessorios] = useState<string[]>([]);
   const [assinatura, setAssinatura] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [acessoriosOutros, setAcessoriosOutros] = useState("");
+  const [dataRececao, setDataRececao] = useState(() => new Date().toISOString().slice(0, 10));
+  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   // Fotos tiradas na receção (ex: dobradiça partida) — enviadas ao criar a OS.
   const [fotos, setFotos] = useState<{ nome: string; dataUrl: string }[]>([]);
   const [aProcessarFotos, setAProcessarFotos] = useState(false);
@@ -166,6 +177,9 @@ function NovaOSPage() {
         if (Array.isArray(d.acessorios)) setAcessorios(d.acessorios);
         setAssinatura(d.assinatura ?? "");
         setObservacoes(d.observacoes ?? "");
+        setAcessoriosOutros(d.acessoriosOutros ?? "");
+        if (d.dataRececao) setDataRececao(d.dataRececao);
+        setTecnicoId(d.tecnicoId ?? null);
         setRestaurado(true);
       }
     } catch {
@@ -189,6 +203,9 @@ function NovaOSPage() {
       acessorios,
       assinatura,
       observacoes,
+      acessoriosOutros,
+      dataRececao,
+      tecnicoId,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -207,6 +224,7 @@ function NovaOSPage() {
   }, [
     clienteRapido, clienteId, clienteNome, contacto, equipamento,
     marcaModelo, numSerie, pin, sintomas, checklist, acessorios, assinatura, observacoes,
+    acessoriosOutros, dataRececao, tecnicoId,
   ]);
 
   function limparRascunho() {
@@ -232,8 +250,14 @@ function NovaOSPage() {
     }
   }
 
+  const listaAcessorios = () => [
+    ...acessorios,
+    ...acessoriosOutros.split(",").map((a) => a.trim()).filter(Boolean),
+  ];
+
   const m = useMutation({
     mutationFn: async () => {
+      const dataRececaoISO = new Date(`${dataRececao}T${new Date().toTimeString().slice(0, 8)}`).toISOString();
       const r = await criar({
         data: {
           cliente_rapido: clienteRapido,
@@ -246,13 +270,49 @@ function NovaOSPage() {
           password_pin: pin || null,
           sintomas_cliente: sintomas || null,
           checklist,
-          acessorios,
+          acessorios: listaAcessorios(),
+          data_rececao: dataRececaoISO,
+          tecnico_id: tecnicoId,
           observacoes: observacoes || null,
           assinatura_rececao: assinatura || null,
         },
       });
       for (const f of fotos) {
         await enviarAnexo({ data: { work_order_id: r.id, nome_ficheiro: f.nome, data_url: f.dataUrl } });
+      }
+      // Download automático do PDF de receção.
+      try {
+        const osPdf: OSParaPdf = {
+          numero: r.numero,
+          cliente_nome: clienteNome,
+          contacto: contacto || null,
+          equipamento: equipamento || null,
+          marca_modelo: marcaModelo || null,
+          num_serie: numSerie || null,
+          password_pin: pin || null,
+          checklist,
+          acessorios: listaAcessorios(),
+          sintomas_cliente: sintomas || null,
+          data_rececao: dataRececaoISO,
+          diagnostico_tecnico: null,
+          tecnico_nome: tecnicos.find((t) => t.id === tecnicoId)?.nome ?? null,
+          aprovado_por: null,
+          meio_aprovacao: null,
+          data_aprovacao: null,
+          prazo_estimado: null,
+          relatorio_intervencao: null,
+          limpeza_efetuada: false,
+          testes_finais_ok: false,
+          data_entrega: null,
+          valor_total_pago: null,
+          observacoes: observacoes || null,
+          observacoes_incluir_pdf: !!observacoes,
+          assinatura_rececao: assinatura || null,
+          assinatura_entrega: null,
+        };
+        await generatePdfOS(osPdf, [], [], empresa ?? {}, "diagnostico");
+      } catch {
+        /* PDF opcional — não bloqueia a criação */
       }
       return r;
     },
@@ -397,6 +457,26 @@ function NovaOSPage() {
             <Label>Sintomas relatados pelo cliente *</Label>
             <Textarea rows={3} value={sintomas} onChange={(e) => setSintomas(e.target.value)} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data de receção</Label>
+              <Input type="date" value={dataRececao} onChange={(e) => setDataRececao(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Técnico responsável</Label>
+              <Select value={tecnicoId ?? "none"} onValueChange={(v) => setTecnicoId(v === "none" ? null : v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem técnico" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem técnico</SelectItem>
+                  {tecnicos.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -478,6 +558,15 @@ function NovaOSPage() {
                   {acc}
                 </label>
               ))}
+            </div>
+            <div className="mt-2">
+              <Label className="text-xs text-muted-foreground mb-1 block">Outro(s)</Label>
+              <Input
+                placeholder="Ex: Disco externo, Pen USB…"
+                value={acessoriosOutros}
+                onChange={(e) => setAcessoriosOutros(e.target.value)}
+                className="max-w-md"
+              />
             </div>
           </div>
 

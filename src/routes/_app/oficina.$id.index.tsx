@@ -552,15 +552,28 @@ function OSDetalhePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><Wrench className="h-4 w-4 text-primary" /> Diagnóstico técnico</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Label>Verificação técnica</Label>
-          <Textarea
-            rows={4}
-            disabled={bloqueado}
-            defaultValue={os.diagnostico_tecnico ?? ""}
-            onBlur={(e) => campoM.mutate({ diagnostico_tecnico: e.target.value })}
-            placeholder="Resultado da verificação técnica antes de enviar orçamento…"
-          />
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Verificação técnica</Label>
+            <Textarea
+              rows={4}
+              disabled={bloqueado}
+              defaultValue={os.diagnostico_tecnico ?? ""}
+              onBlur={(e) => campoM.mutate({ diagnostico_tecnico: e.target.value })}
+              placeholder="Resultado da verificação técnica antes de enviar orçamento…"
+            />
+          </div>
+          <div className="space-y-2 max-w-xs">
+            <Label>Data do diagnóstico</Label>
+            <Input
+              type="date"
+              disabled={bloqueado}
+              defaultValue={os.data_diagnostico ? String(os.data_diagnostico).slice(0, 10) : ""}
+              onChange={(e) =>
+                campoM.mutate({ data_diagnostico: e.target.value ? new Date(e.target.value).toISOString() : null })
+              }
+            />
+          </div>
         </CardContent>
       </Card>
 
