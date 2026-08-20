@@ -148,6 +148,15 @@ function OSDetalhePage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["os", id] });
 
+  function avisarAuto(r: { status_auto?: string; aviso?: string } | undefined) {
+    if (r?.status_auto) {
+      toast.success(`Estado atualizado automaticamente para "${STATUS_LABELS[r.status_auto as StatusOS]}".`);
+    }
+    if (r?.aviso === "checklist_incompleto") {
+      toast.warning("Dados guardados, mas o checklist de entrada tem de estar completo para o estado avançar.");
+    }
+  }
+
   const statusM = useMutation({
     mutationFn: (novoStatus: StatusOS) => {
       const oldIdx = STATUS_ORDER.indexOf(data!.os.status as StatusOS);
@@ -156,11 +165,16 @@ function OSDetalhePage() {
       return mudarStatus({ data: { id, status: novoStatus, auto_status_locked: locked } });
     },
     onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const campoM = useMutation({
     mutationFn: (campo: Record<string, unknown>) => atualizar({ data: { id, ...campo } }),
-    onSuccess: invalidate,
+    onSuccess: (r) => {
+      avisarAuto(r as never);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const assinarRecM = useMutation({
@@ -181,14 +195,17 @@ function OSDetalhePage() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
       setNovaDesc("");
       setNovaQtd("1");
       setNovoPreco("0");
       setNovoItemCatalogo("_livre");
+      avisarAuto(r as never);
       invalidate();
     },
+    onError: (e: Error) => toast.error(e.message),
   });
+
 
   const delItemM = useMutation({
     mutationFn: (itemId: string) => delItem({ data: { id: itemId } }),
