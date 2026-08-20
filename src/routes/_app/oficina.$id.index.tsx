@@ -301,6 +301,9 @@ function OSDetalhePage() {
   const acessoriosAtuais: string[] = (os.acessorios as string[] | null) ?? [];
   const acessoriosConhecidos = acessoriosAtuais.filter((a) => (ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
+  const checklistIncompleto = checklist.some((it) => it.status === null || it.status === undefined);
+  const dadosIncompletos =
+    !!os.cliente_rapido || !os.contacto?.trim() || !os.equipamento?.trim() || !os.marca_modelo?.trim();
   const jaEntregue = os.status === "entregue";
   const bloqueado = jaEntregue || !editando;
   const podeEntregar =
@@ -464,6 +467,11 @@ function OSDetalhePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada</CardTitle>
+          {checklistIncompleto && dadosIncompletos && (
+            <p className="text-xs text-destructive">
+              Cliente rápido / dados incompletos: preencha todos os itens do checklist para o estado poder avançar.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
