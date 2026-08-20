@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Boxes, ArrowDownToLine, ArrowUpFromLine, History, AlertTriangle } from "lucide-react";
+import { Boxes, ArrowDownToLine, ArrowUpFromLine, History, AlertTriangle, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_app/stock")({
   head: () => ({
@@ -57,6 +57,11 @@ function StockPage() {
   const { data: movs = [] } = useQuery({
     queryKey: ["stock-movimentos"],
     queryFn: () => movFn({ data: { limite: 100 } }),
+  });
+  const resumoFn = useServerFn(resumoPorVendedor);
+  const { data: resumo = [] } = useQuery({
+    queryKey: ["stock-resumo-vendedor"],
+    queryFn: () => resumoFn({ data: {} }),
   });
   const [q, setQ] = useState("");
   const [mov, setMov] = useState<{ artigo: Artigo; tipo: "entrada" | "saida" | "ajuste" } | null>(null);
@@ -264,6 +269,7 @@ function StockPage() {
             await Promise.all([
               qc.invalidateQueries({ queryKey: ["stock"] }),
               qc.invalidateQueries({ queryKey: ["stock-movimentos"] }),
+              qc.invalidateQueries({ queryKey: ["stock-resumo-vendedor"] }),
               qc.invalidateQueries({ queryKey: ["catalogo"] }),
             ]);
           }}
