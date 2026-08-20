@@ -166,6 +166,7 @@ const camposComuns = {
   acessorios: z.array(z.string()).optional(),
   sintomas_cliente: z.string().trim().optional().nullable(),
   tecnico_id: z.string().uuid().optional().nullable(),
+  tecnico_nome: z.string().trim().optional().nullable(),
   diagnostico_tecnico: z.string().trim().optional().nullable(),
   data_rececao: z.string().optional(),
   data_diagnostico: z.string().optional().nullable(),

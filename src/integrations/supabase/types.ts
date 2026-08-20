@@ -717,6 +717,7 @@ export type Database = {
           sintomas_cliente: string | null
           status: string
           tecnico_id: string | null
+          tecnico_nome: string | null
           testes_finais_ok: boolean
           updated_at: string
           valor_estimado: number | null
@@ -755,6 +756,7 @@ export type Database = {
           sintomas_cliente?: string | null
           status?: string
           tecnico_id?: string | null
+          tecnico_nome?: string | null
           testes_finais_ok?: boolean
           updated_at?: string
           valor_estimado?: number | null
@@ -793,6 +795,7 @@ export type Database = {
           sintomas_cliente?: string | null
           status?: string
           tecnico_id?: string | null
+          tecnico_nome?: string | null
           testes_finais_ok?: boolean
           updated_at?: string
           valor_estimado?: number | null

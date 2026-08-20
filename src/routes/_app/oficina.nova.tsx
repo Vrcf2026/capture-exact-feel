@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X, PenLine } from "lucide-react";
 import {
   criarOS,
-  listTecnicos,
   uploadAnexoOS,
   DEFAULT_CHECKLIST,
   ACESSORIOS_OPTIONS,
@@ -72,7 +71,7 @@ interface Rascunho {
   observacoes?: string;
   acessoriosOutros?: string;
   dataRececao?: string;
-  tecnicoId?: string | null;
+  tecnicoNome?: string;
 }
 
 /** Reduz e comprime a foto antes de a guardar como anexo. */
@@ -129,7 +128,6 @@ function NovaOSPage() {
     retry: 2,
     retryDelay: 800,
   });
-  const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos"], queryFn: () => listTecnicos() });
   const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
   const criar = useServerFn(criarOS);
   const enviarAnexo = useServerFn(uploadAnexoOS);
@@ -149,7 +147,7 @@ function NovaOSPage() {
   const [observacoes, setObservacoes] = useState("");
   const [acessoriosOutros, setAcessoriosOutros] = useState("");
   const [dataRececao, setDataRececao] = useState(() => new Date().toISOString().slice(0, 10));
-  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
+  const [tecnicoNome, setTecnicoNome] = useState("");
   // Fotos tiradas na receção (ex: dobradiça partida) — enviadas ao criar a OS.
   const [fotos, setFotos] = useState<{ nome: string; dataUrl: string }[]>([]);
   const [aProcessarFotos, setAProcessarFotos] = useState(false);
@@ -179,7 +177,7 @@ function NovaOSPage() {
         setObservacoes(d.observacoes ?? "");
         setAcessoriosOutros(d.acessoriosOutros ?? "");
         if (d.dataRececao) setDataRececao(d.dataRececao);
-        setTecnicoId(d.tecnicoId ?? null);
+        setTecnicoNome(d.tecnicoNome ?? "");
         setRestaurado(true);
       }
     } catch {
@@ -205,7 +203,7 @@ function NovaOSPage() {
       observacoes,
       acessoriosOutros,
       dataRececao,
-      tecnicoId,
+      tecnicoNome,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
@@ -224,7 +222,7 @@ function NovaOSPage() {
   }, [
     clienteRapido, clienteId, clienteNome, contacto, equipamento,
     marcaModelo, numSerie, pin, sintomas, checklist, acessorios, assinatura, observacoes,
-    acessoriosOutros, dataRececao, tecnicoId,
+    acessoriosOutros, dataRececao, tecnicoNome,
   ]);
 
   function limparRascunho() {
@@ -272,7 +270,7 @@ function NovaOSPage() {
           checklist,
           acessorios: listaAcessorios(),
           data_rececao: dataRececaoISO,
-          tecnico_id: tecnicoId,
+          tecnico_nome: tecnicoNome || null,
           observacoes: observacoes || null,
           assinatura_rececao: assinatura || null,
         },
@@ -295,7 +293,7 @@ function NovaOSPage() {
           sintomas_cliente: sintomas || null,
           data_rececao: dataRececaoISO,
           diagnostico_tecnico: null,
-          tecnico_nome: tecnicos.find((t) => t.id === tecnicoId)?.nome ?? null,
+          tecnico_nome: tecnicoNome || null,
           aprovado_por: null,
           meio_aprovacao: null,
           data_aprovacao: null,
@@ -464,17 +462,11 @@ function NovaOSPage() {
             </div>
             <div className="space-y-2">
               <Label>Técnico responsável</Label>
-              <Select value={tecnicoId ?? "none"} onValueChange={(v) => setTecnicoId(v === "none" ? null : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem técnico" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem técnico</SelectItem>
-                  {tecnicos.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                value={tecnicoNome}
+                onChange={(e) => setTecnicoNome(e.target.value)}
+                placeholder="Nome do técnico"
+              />
             </div>
           </div>
         </CardContent>
