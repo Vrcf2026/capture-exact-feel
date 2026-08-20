@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { Save, Check, User, Stethoscope, ClipboardList, Camera, Upload, X, PenLine } from "lucide-react";
 import {
   criarOS,
-  listTecnicos,
   uploadAnexoOS,
   DEFAULT_CHECKLIST,
   ACESSORIOS_OPTIONS,
@@ -129,7 +128,6 @@ function NovaOSPage() {
     retry: 2,
     retryDelay: 800,
   });
-  const { data: tecnicos = [] } = useQuery({ queryKey: ["tecnicos"], queryFn: () => listTecnicos() });
   const { data: empresa } = useQuery({ queryKey: ["empresa"], queryFn: () => getCompany() });
   const criar = useServerFn(criarOS);
   const enviarAnexo = useServerFn(uploadAnexoOS);
