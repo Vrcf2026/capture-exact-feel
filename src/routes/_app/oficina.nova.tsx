@@ -275,11 +275,13 @@ function NovaOSPage() {
     setAcessorios((prev) => (prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc]));
   }
 
-  // Cliente rápido dispensa contacto e assinatura do cliente.
+  // Cliente rápido dispensa contacto, assinatura e checklist.
+  const checklistPreenchido = checklist.some((it) => it.status !== null);
   const podeSubmeter =
     clienteNome.trim().length > 0 &&
     sintomas.trim().length > 0 &&
-    (clienteRapido || (assinatura.trim().length > 0 && contacto.trim().length > 0));
+    (clienteRapido ||
+      (assinatura.trim().length > 0 && contacto.trim().length > 0 && checklistPreenchido));
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -397,12 +399,19 @@ function NovaOSPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-3">
             <ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada
+            {!clienteRapido && <span className="text-destructive">*</span>}
             <BotaoGuardar onGuardar={guardarRascunho} />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!clienteRapido && !checklistPreenchido && (
+            <p className="text-sm text-destructive">
+              Preencha pelo menos um item da checklist (obrigatório sem cliente rápido).
+            </p>
+          )}
           <div className="space-y-1">
             {checklist.map((item, i) => (
+
               <div key={item.item} className="border-b border-border/50 py-2">
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-sm flex-1">{item.item}</span>
