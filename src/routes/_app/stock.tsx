@@ -171,8 +171,10 @@ function StockPage() {
                   <TableHead className="text-right">Qtd</TableHead>
                   <TableHead className="text-right">Stock após</TableHead>
                   <TableHead>Motivo</TableHead>
+                  <TableHead>Vendedor</TableHead>
                   <TableHead>Utilizador</TableHead>
                 </TableRow>
+
               </TableHeader>
               <TableBody>
                 {movs.length === 0 ? (
