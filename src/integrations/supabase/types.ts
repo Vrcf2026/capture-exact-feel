@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      backup_cron: {
+        Row: {
+          criado_em: string
+          id: boolean
+          token: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: boolean
+          token?: string
+        }
+        Update: {
+          criado_em?: string
+          id?: boolean
+          token?: string
+        }
+        Relationships: []
+      }
       caixa_diario: {
         Row: {
           aberto_em: string
