@@ -399,12 +399,19 @@ function NovaOSPage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-3">
             <ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada
+            {!clienteRapido && <span className="text-destructive">*</span>}
             <BotaoGuardar onGuardar={guardarRascunho} />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!clienteRapido && !checklistPreenchido && (
+            <p className="text-sm text-destructive">
+              Preencha pelo menos um item da checklist (obrigatório sem cliente rápido).
+            </p>
+          )}
           <div className="space-y-1">
             {checklist.map((item, i) => (
+
               <div key={item.item} className="border-b border-border/50 py-2">
                 <div className="flex items-center gap-1">
                   <span className="font-medium text-sm flex-1">{item.item}</span>
