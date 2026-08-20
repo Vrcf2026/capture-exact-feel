@@ -367,25 +367,54 @@ function OSDetalhePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4 text-primary" /> Dados do cliente e equipamento</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Contacto: </span>
-            {os.contacto ?? "—"}
+        <CardContent className="space-y-4">
+          {!bloqueado && (
+            <p className="text-xs text-muted-foreground">
+              Corrija os dados e clique fora do campo para guardar.
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {([
+              ["cliente_nome", "Nome do cliente", os.cliente_nome ?? ""],
+              ["contacto", "Contacto", os.contacto ?? ""],
+              ["equipamento", "Equipamento", os.equipamento ?? ""],
+              ["marca_modelo", "Marca / modelo", os.marca_modelo ?? ""],
+              ["num_serie", "Nº de série", os.num_serie ?? ""],
+              ["password_pin", "Password / PIN", os.password_pin ?? ""],
+            ] as const).map(([campo, label, valor]) => (
+              <div className="space-y-1.5" key={campo}>
+                <Label>{label}</Label>
+                <Input
+                  key={`${campo}-${valor}`}
+                  disabled={bloqueado}
+                  defaultValue={valor}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v === valor) return;
+                    if (campo === "cliente_nome" && !v) {
+                      toast.error("O nome do cliente é obrigatório.");
+                      e.target.value = valor;
+                      return;
+                    }
+                    campoM.mutate({ [campo]: v || null });
+                  }}
+                />
+              </div>
+            ))}
           </div>
-          <div>
-            <span className="text-muted-foreground">Nº série: </span>
-            {os.num_serie ?? "—"}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Receção: </span>
-            {dt(os.data_rececao)}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Cliente rápido: </span>
-            {os.cliente_rapido ? "Sim" : "Não"}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Receção: </span>
+              {dt(os.data_rececao)}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Cliente rápido: </span>
+              {os.cliente_rapido ? "Sim" : "Não"}
+            </div>
           </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
