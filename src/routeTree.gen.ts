@@ -25,6 +25,7 @@ import { Route as AppCaixaRouteImport } from './routes/_app/caixa'
 import { Route as AppRegistosIndexRouteImport } from './routes/_app/registos.index'
 import { Route as AppOficinaIndexRouteImport } from './routes/_app/oficina.index'
 import { Route as AppClientesIndexRouteImport } from './routes/_app/clientes.index'
+import { Route as ApiPublicBackupDiarioRouteImport } from './routes/api/public/backup-diario'
 import { Route as AppRegistosIdRouteImport } from './routes/_app/registos.$id'
 import { Route as AppOficinaRelatoriosRouteImport } from './routes/_app/oficina.relatorios'
 import { Route as AppOficinaNovaRouteImport } from './routes/_app/oficina.nova'
@@ -112,6 +113,11 @@ const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
   path: '/clientes/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicBackupDiarioRoute = ApiPublicBackupDiarioRouteImport.update({
+  id: '/api/public/backup-diario',
+  path: '/api/public/backup-diario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRegistosIdRoute = AppRegistosIdRouteImport.update({
   id: '/registos/$id',
   path: '/registos/$id',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/api/public/backup-diario': typeof ApiPublicBackupDiarioRoute
   '/clientes/': typeof AppClientesIndexRoute
   '/oficina/': typeof AppOficinaIndexRoute
   '/registos/': typeof AppRegistosIndexRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/oficina/nova': typeof AppOficinaNovaRoute
   '/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/registos/$id': typeof AppRegistosIdRoute
+  '/api/public/backup-diario': typeof ApiPublicBackupDiarioRoute
   '/clientes': typeof AppClientesIndexRoute
   '/oficina': typeof AppOficinaIndexRoute
   '/registos': typeof AppRegistosIndexRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/_app/oficina/nova': typeof AppOficinaNovaRoute
   '/_app/oficina/relatorios': typeof AppOficinaRelatoriosRoute
   '/_app/registos/$id': typeof AppRegistosIdRoute
+  '/api/public/backup-diario': typeof ApiPublicBackupDiarioRoute
   '/_app/clientes/': typeof AppClientesIndexRoute
   '/_app/oficina/': typeof AppOficinaIndexRoute
   '/_app/registos/': typeof AppRegistosIndexRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/oficina/nova'
     | '/oficina/relatorios'
     | '/registos/$id'
+    | '/api/public/backup-diario'
     | '/clientes/'
     | '/oficina/'
     | '/registos/'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/oficina/nova'
     | '/oficina/relatorios'
     | '/registos/$id'
+    | '/api/public/backup-diario'
     | '/clientes'
     | '/oficina'
     | '/registos'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/_app/oficina/nova'
     | '/_app/oficina/relatorios'
     | '/_app/registos/$id'
+    | '/api/public/backup-diario'
     | '/_app/clientes/'
     | '/_app/oficina/'
     | '/_app/registos/'
@@ -302,6 +314,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPublicBackupDiarioRoute: typeof ApiPublicBackupDiarioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -418,6 +431,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/backup-diario': {
+      id: '/api/public/backup-diario'
+      path: '/api/public/backup-diario'
+      fullPath: '/api/public/backup-diario'
+      preLoaderRoute: typeof ApiPublicBackupDiarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/registos/$id': {
       id: '/_app/registos/$id'
       path: '/registos/$id'
@@ -522,6 +542,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPublicBackupDiarioRoute: ApiPublicBackupDiarioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
