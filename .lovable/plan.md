@@ -22,6 +22,13 @@ Nova página **Backups** (só admin) para exportar todos os dados, mais um backu
 - Retenção: mantém os últimos 30 dias e apaga os mais antigos automaticamente.
 - Também dá para forçar "Gerar backup automático agora" para testar.
 
+## 4. Cópia para o teu Google Drive
+
+- Cada backup (diário automático e o manual) é também enviado para uma pasta no teu Google Drive, ex. `VRCF Backups`.
+- Ligação da conta Google feita uma vez através do cartão de ligação do Google Drive no chat (sem colar chaves).
+- Na página Backups: estado da ligação ao Drive, nome da pasta e último envio com sucesso; se o envio falhar, o backup fica sempre guardado no armazenamento interno e o erro é mostrado.
+
+
 ## 4. Acesso
 
 - Entrada "Backups" na barra lateral visível apenas a admin.
