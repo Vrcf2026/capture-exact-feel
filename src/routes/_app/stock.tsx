@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { listStock, listMovimentos, registarMovimento } from "@/lib/stock.functions";
+import { listStock, listMovimentos, registarMovimento, resumoPorVendedor } from "@/lib/stock.functions";
+import { listVendedores } from "@/lib/admin.functions";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
