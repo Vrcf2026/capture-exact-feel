@@ -4,11 +4,17 @@ export const Route = createFileRoute("/api/public/backup-diario")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const esperado = process.env["BACKUP_CRON_SECRET"];
         const recebido = request.headers.get("x-backup-secret");
-        if (!esperado || !recebido || recebido !== esperado) {
-          return new Response("Não autorizado", { status: 401 });
+        if (!recebido) return new Response("Não autorizado", { status: 401 });
+
+        let valido = recebido === process.env["BACKUP_CRON_SECRET"];
+        if (!valido) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data } = await supabaseAdmin.from("backup_cron").select("token").maybeSingle();
+          valido = !!data?.token && data.token === recebido;
         }
+        if (!valido) return new Response("Não autorizado", { status: 401 });
+
         try {
           const { executarBackup } = await import("@/lib/backup.server");
           const r = await executarBackup();
