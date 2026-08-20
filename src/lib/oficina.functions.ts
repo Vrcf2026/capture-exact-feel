@@ -167,7 +167,7 @@ const camposComuns = {
   sintomas_cliente: z.string().trim().optional().nullable(),
   tecnico_id: z.string().uuid().optional().nullable(),
   diagnostico_tecnico: z.string().trim().optional().nullable(),
-  data_rececao: z.string().optional().nullable(),
+  data_rececao: z.string().optional(),
   data_diagnostico: z.string().optional().nullable(),
   valor_estimado: z.number().min(0).optional().nullable(),
   aprovado_por: z.string().trim().optional().nullable(),
