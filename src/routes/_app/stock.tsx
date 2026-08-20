@@ -212,6 +212,48 @@ function StockPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4" /> Movimentos por vendedor
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead className="text-right">Entradas</TableHead>
+                  <TableHead className="text-right">Saídas</TableHead>
+                  <TableHead className="text-right">Ajustes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumo.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                      Sem movimentos associados a vendedores.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  resumo.map((r) => (
+                    <TableRow key={r.nome}>
+                      <TableCell className="font-medium">{r.nome}</TableCell>
+                      <TableCell className="text-right mono">{r.entradas}</TableCell>
+                      <TableCell className="text-right mono">{r.saidas}</TableCell>
+                      <TableCell className="text-right mono">{r.ajustes}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+
+
       {mov && (
         <MovDialog
           artigo={mov.artigo}
