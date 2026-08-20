@@ -176,6 +176,9 @@ function EditDialog({
               <Label>Ativo</Label>
             </div>
           </div>
+          {state.password.length > 0 && state.password.length < 6 && (
+            <div className="text-sm text-destructive">A password tem de ter pelo menos 6 caracteres.</div>
+          )}
           {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
         </div>
         <DialogFooter>

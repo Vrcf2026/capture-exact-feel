@@ -215,7 +215,12 @@ export const listUtilizadores = createServerFn({ method: "GET" }).handler(async 
 const utilSchema = z.object({
   id: z.string().uuid().optional(),
   nome: z.string().trim().min(1).max(60),
-  password: z.string().min(6).max(200).optional(),
+  password: z
+    .preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z
+      .string()
+      .min(6, "A password tem de ter pelo menos 6 caracteres.")
+      .max(200)
+      .optional()),
   papel: z.enum(["admin", "operador", "tecnico"]),
   acesso_loja: z.boolean(),
   acesso_oficina: z.boolean(),
