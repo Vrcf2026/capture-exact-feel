@@ -40,7 +40,16 @@ export const Route = createFileRoute("/_app/oficina/nova")({
     ],
   }),
   component: NovaOSPage,
+  errorComponent: () => (
+    <div className="max-w-md space-y-3 p-4">
+      <p className="text-sm text-muted-foreground">
+        Não foi possível carregar a página. Verifique a ligação e tente novamente.
+      </p>
+      <Button onClick={() => window.location.reload()}>Recarregar</Button>
+    </div>
+  ),
 });
+
 
 const DRAFT_KEY = "vrcf:nova-os:rascunho";
 
