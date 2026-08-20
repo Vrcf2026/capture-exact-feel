@@ -22,7 +22,15 @@ Nova página **Backups** (só admin) para exportar todos os dados, mais um backu
 - Retenção: mantém os últimos 30 dias e apaga os mais antigos automaticamente.
 - Também dá para forçar "Gerar backup automático agora" para testar.
 
-## 4. Acesso
+## 4. Cópia para o teu Google Drive
+
+- Cada backup (diário automático e o manual) é também enviado para uma pasta no teu Google Drive, ex. `VRCF Backups`.
+- Ligação da conta Google feita uma vez através do cartão de ligação do Google Drive no chat (sem colar chaves).
+- Na página Backups: estado da ligação ao Drive, nome da pasta e último envio com sucesso; se o envio falhar, o backup fica sempre guardado no armazenamento interno e o erro é mostrado.
+
+
+## 5. Acesso
+
 
 - Entrada "Backups" na barra lateral visível apenas a admin.
 - Todas as operações validam no servidor que a sessão é de um admin; um operador que tente acessar recebe erro.
@@ -34,3 +42,4 @@ Nova página **Backups** (só admin) para exportar todos os dados, mais um backu
 - ZIP gerado no cliente com `jszip` (única dependência nova); os CSV/JSON individuais não precisam de dependências.
 - Agendamento com `pg_cron` + `pg_net` a chamar `src/routes/api/public/backup-diario.ts`, protegido por um segredo `BACKUP_CRON_SECRET` verificado no handler.
 - O bucket `backups` fica privado com políticas deny-all (acesso só via service role e links temporários), igual ao `anexos`.
+- Envio para o Drive pelo connector Google Drive da Lovable (upload multipart via connector gateway), feito só no servidor.
