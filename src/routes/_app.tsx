@@ -6,6 +6,8 @@ import { whoAmI, logout, changeOwnPassword } from "@/lib/auth.functions";
 import { setSessionToken } from "@/lib/custom-auth-attacher";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { MobileTabBar } from "@/components/MobileTabBar";
+import { InstallPWA } from "@/components/InstallPWA";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -162,16 +164,21 @@ function AppLayout() {
         </SidebarFooter>
       </Sidebar>
       <main className="flex-1 min-w-0 flex flex-col">
-        <header className="border-b border-border h-12 flex items-center gap-2 px-3">
-          <SidebarTrigger />
-          <img src="/vrcf-logo.png" alt="VRCF" className="h-7 w-auto max-w-40 object-contain object-left" />
+        <header
+          className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur h-14 md:h-12 flex items-center gap-2 px-3"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <SidebarTrigger className="hidden md:inline-flex" />
+          <img src="/vrcf-logo.png" alt="VRCF" className="h-8 md:h-7 w-auto max-w-40 object-contain object-left" />
           <div className="ml-auto"><GlobalSearch /></div>
         </header>
         <div className="flex-1 min-w-0 overflow-auto">
-          <div className="container-app py-6">
+          <div className="container-app py-4 md:py-6 pb-24 md:pb-6">
             <Outlet />
           </div>
         </div>
+        <MobileTabBar podeLoja={podeLoja} podeOficina={podeOficina} />
+        <InstallPWA />
       </main>
     </SidebarProvider>
   );
