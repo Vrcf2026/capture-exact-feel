@@ -261,12 +261,11 @@ function NovaOSPage() {
     setAcessorios((prev) => (prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc]));
   }
 
-  // Mesma validação do vrcftecnica original: contacto só é obrigatório fora de "cliente rápido".
+  // Cliente rápido dispensa contacto e assinatura do cliente.
   const podeSubmeter =
     clienteNome.trim().length > 0 &&
     sintomas.trim().length > 0 &&
-    assinatura.trim().length > 0 &&
-    (clienteRapido || contacto.trim().length > 0);
+    (clienteRapido || (assinatura.trim().length > 0 && contacto.trim().length > 0));
 
   return (
     <div className="max-w-2xl space-y-6">
