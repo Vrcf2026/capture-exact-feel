@@ -193,50 +193,6 @@ export const criarOS = createServerFn({ method: "POST" })
     return os;
   });
 
-function checklistCompleto(checklist: unknown) {
-  if (!Array.isArray(checklist) || checklist.length === 0) return false;
-  return (checklist as ChecklistItem[]).every((it) => it && it.status !== null && it.status !== undefined);
-}
-
-const preenchido = (v: unknown) => typeof v === "string" && v.trim().length > 0;
-
-type OSRow = Record<string, unknown>;
-
-/**
- * Transições automáticas de estado (como no vrcftecnica original).
- * Só avançam — nunca recuam — e ficam desligadas se auto_status_locked estiver ativo.
- */
-function proximoStatusAuto(os: OSRow, temItens: boolean): StatusOS | null {
-  if (os['auto_status_locked']) return null;
-  const atual = os['status'] as StatusOS;
-  if (atual === "entregue" || atual === "nao_aprovado" || atual === "sem_reparacao") return null;
-
-  let alvo: StatusOS = atual;
-  if (preenchido(os['diagnostico_tecnico'])) alvo = "diagnostico";
-  if (temItens || Number(os['valor_estimado'] ?? 0) > 0) alvo = "orcamento";
-  if (preenchido(os['aprovado_por']) || preenchido(os['data_aprovacao'] as string)) alvo = "aprovado";
-  if (preenchido(os['relatorio_intervencao'])) alvo = "concluido";
-
-  const idxAtual = STATUS_ORDER.indexOf(atual);
-  const idxAlvo = STATUS_ORDER.indexOf(alvo);
-  return idxAlvo > idxAtual ? alvo : null;
-}
-
-/** Cliente rápido (dados mínimos) obriga a checklist de entrada preenchido antes de avançar. */
-function validarClienteRapido(os: OSRow, novoStatus: StatusOS) {
-  if (novoStatus === "recebido") return;
-  const dadosIncompletos =
-    !!os['cliente_rapido'] ||
-    !preenchido(os['contacto']) ||
-    !preenchido(os['equipamento']) ||
-    !preenchido(os['marca_modelo']);
-  if (dadosIncompletos && !checklistCompleto(os['checklist'])) {
-    throw new Error(
-      "Cliente rápido / dados incompletos: preencha o checklist de entrada (todos os itens) antes de avançar o estado.",
-    );
-  }
-}
-
 export const atualizarOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z
@@ -247,6 +203,7 @@ export const atualizarOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { proximoStatusAuto, validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
     const { id, ...resto } = data;
     const { data: os, error } = await supabaseAdmin
@@ -263,10 +220,10 @@ export const atualizarOS = createServerFn({ method: "POST" })
         .from("work_order_itens")
         .select("id", { count: "exact", head: true })
         .eq("work_order_id", id);
-      const novo = proximoStatusAuto(os as OSRow, (count ?? 0) > 0);
+      const novo = proximoStatusAuto(os as Record<string, unknown>, (count ?? 0) > 0);
       if (novo) {
         try {
-          validarClienteRapido(os as OSRow, novo);
+          validarClienteRapido(os as Record<string, unknown>, novo);
           await supabaseAdmin.from("work_orders").update({ status: novo }).eq("id", id);
           return { ok: true, status_auto: novo };
         } catch {
@@ -285,6 +242,7 @@ export const mudarStatusOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
 
     const { data: os } = await supabaseAdmin
@@ -293,7 +251,7 @@ export const mudarStatusOS = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .maybeSingle();
     if (!os) throw new Error("Ordem de serviço não encontrada.");
-    validarClienteRapido(os as OSRow, data.status);
+    validarClienteRapido(os as Record<string, unknown>, data.status);
 
     const { error } = await supabaseAdmin
       .from("work_orders")
@@ -322,6 +280,7 @@ export const adicionarItemOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { proximoStatusAuto, validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
     const { error } = await supabaseAdmin.from("work_order_itens").insert(data);
     if (error) throw new Error(error.message);
@@ -333,10 +292,10 @@ export const adicionarItemOS = createServerFn({ method: "POST" })
       .eq("id", data.work_order_id)
       .maybeSingle();
     if (os) {
-      const novo = proximoStatusAuto(os as OSRow, true);
+      const novo = proximoStatusAuto(os as Record<string, unknown>, true);
       if (novo) {
         try {
-          validarClienteRapido(os as OSRow, novo);
+          validarClienteRapido(os as Record<string, unknown>, novo);
           await supabaseAdmin.from("work_orders").update({ status: novo }).eq("id", data.work_order_id);
           return { ok: true, status_auto: novo };
         } catch {
