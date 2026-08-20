@@ -453,6 +453,18 @@ function NovaOSPage() {
           </div>
 
           <div>
+            <Label>Observações gerais (texto livre)</Label>
+            <Textarea
+              rows={3}
+              placeholder="Aponte algo diferente do que existe na lista (ex: parafusos em falta, líquido derramado, avaria intermitente…)"
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+            />
+          </div>
+
+
+
+          <div>
             <Label className="mb-2 block">Acessórios entregues</Label>
             <div className="flex flex-wrap gap-3">
               {ACESSORIOS_OPTIONS.map((acc) => (
