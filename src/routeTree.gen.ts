@@ -22,6 +22,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppContaCorrenteRouteImport } from './routes/_app/conta-corrente'
 import { Route as AppCatalogoRouteImport } from './routes/_app/catalogo'
 import { Route as AppCaixaRouteImport } from './routes/_app/caixa'
+import { Route as AppBackupsRouteImport } from './routes/_app/backups'
 import { Route as AppRegistosIndexRouteImport } from './routes/_app/registos.index'
 import { Route as AppOficinaIndexRouteImport } from './routes/_app/oficina.index'
 import { Route as AppClientesIndexRouteImport } from './routes/_app/clientes.index'
@@ -98,6 +99,11 @@ const AppCaixaRoute = AppCaixaRouteImport.update({
   path: '/caixa',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBackupsRoute = AppBackupsRouteImport.update({
+  id: '/backups',
+  path: '/backups',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRegistosIndexRoute = AppRegistosIndexRouteImport.update({
   id: '/registos/',
   path: '/registos/',
@@ -157,6 +163,7 @@ const AppOficinaIdImprimirRoute = AppOficinaIdImprimirRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/backups': typeof AppBackupsRoute
   '/caixa': typeof AppCaixaRoute
   '/catalogo': typeof AppCatalogoRoute
   '/conta-corrente': typeof AppContaCorrenteRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/backups': typeof AppBackupsRoute
   '/caixa': typeof AppCaixaRoute
   '/catalogo': typeof AppCatalogoRoute
   '/conta-corrente': typeof AppContaCorrenteRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/backups': typeof AppBackupsRoute
   '/_app/caixa': typeof AppCaixaRoute
   '/_app/catalogo': typeof AppCatalogoRoute
   '/_app/conta-corrente': typeof AppContaCorrenteRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/backups'
     | '/caixa'
     | '/catalogo'
     | '/conta-corrente'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/backups'
     | '/caixa'
     | '/catalogo'
     | '/conta-corrente'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/login'
+    | '/_app/backups'
     | '/_app/caixa'
     | '/_app/catalogo'
     | '/_app/conta-corrente'
@@ -410,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCaixaRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/backups': {
+      id: '/_app/backups'
+      path: '/backups'
+      fullPath: '/backups'
+      preLoaderRoute: typeof AppBackupsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/registos/': {
       id: '/_app/registos/'
       path: '/registos'
@@ -491,6 +510,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppBackupsRoute: typeof AppBackupsRoute
   AppCaixaRoute: typeof AppCaixaRoute
   AppCatalogoRoute: typeof AppCatalogoRoute
   AppContaCorrenteRoute: typeof AppContaCorrenteRoute
@@ -514,6 +534,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppBackupsRoute: AppBackupsRoute,
   AppCaixaRoute: AppCaixaRoute,
   AppCatalogoRoute: AppCatalogoRoute,
   AppContaCorrenteRoute: AppContaCorrenteRoute,
