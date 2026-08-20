@@ -698,6 +698,7 @@ export type Database = {
           contacto: string | null
           created_at: string
           data_aprovacao: string | null
+          data_diagnostico: string | null
           data_entrega: string | null
           data_rececao: string
           diagnostico_tecnico: string | null
@@ -735,6 +736,7 @@ export type Database = {
           contacto?: string | null
           created_at?: string
           data_aprovacao?: string | null
+          data_diagnostico?: string | null
           data_entrega?: string | null
           data_rececao?: string
           diagnostico_tecnico?: string | null
@@ -772,6 +774,7 @@ export type Database = {
           contacto?: string | null
           created_at?: string
           data_aprovacao?: string | null
+          data_diagnostico?: string | null
           data_entrega?: string | null
           data_rececao?: string
           diagnostico_tecnico?: string | null
