@@ -32,9 +32,9 @@ const catSchema = z.object({
 export const upsertCatalogo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => catSchema.parse(d))
   .handler(async ({ data }) => {
-    const { requireAdmin } = await import("./auth.server");
+    const { requireLoja } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await requireAdmin();
+    await requireLoja();
     const { id, stock, ...rest } = data;
     const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
     if (id) {
@@ -51,7 +51,7 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message);
       if (stockInicial > 0) {
-        const u = await requireAdmin();
+        const u = await requireLoja();
         await supabaseAdmin.from("stock_movimentos").insert({
           catalogo_id: row.id,
           tipo: "entrada",
