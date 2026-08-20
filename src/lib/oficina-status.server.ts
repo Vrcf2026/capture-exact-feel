@@ -29,17 +29,21 @@ export function proximoStatusAuto(os: OSRow, temItens: boolean): StatusOS | null
   return idxAlvo > idxAtual ? alvo : null;
 }
 
-/** Cliente rápido (dados mínimos) obriga a checklist de entrada preenchido antes de avançar. */
+/**
+ * Cliente rápido: dispensa checklist e assinatura do cliente — avança sempre.
+ * Caso contrário, dados incompletos obrigam a checklist de entrada preenchido.
+ */
 export function validarClienteRapido(os: OSRow, novoStatus: StatusOS) {
   if (novoStatus === "recebido") return;
+  if (os['cliente_rapido']) return; // cliente rápido não exige checklist nem assinatura
   const dadosIncompletos =
-    !!os['cliente_rapido'] ||
     !preenchido(os['contacto']) ||
     !preenchido(os['equipamento']) ||
     !preenchido(os['marca_modelo']);
   if (dadosIncompletos && !checklistCompleto(os['checklist'])) {
     throw new Error(
-      "Cliente rápido / dados incompletos: preencha o checklist de entrada (todos os itens) antes de avançar o estado.",
+      "Dados do cliente/equipamento incompletos: preencha o checklist de entrada (todos os itens) antes de avançar o estado.",
     );
   }
 }
+
