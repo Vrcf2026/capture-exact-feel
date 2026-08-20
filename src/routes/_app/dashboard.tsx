@@ -189,7 +189,7 @@ function Cards() {
     return acc;
   }, {});
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Metric title="Vendas hoje" value={eur(totalVendas)} subtitle={`${data.vendas.length} registos`} />
       <Metric title="Saídas de caixa" value={eur(totalSaidas)} subtitle={`${data.saidas.length} lançamentos`} />
       <Metric title="Dinheiro recebido" value={eur(porMetodo.dinheiro ?? 0)} />
@@ -210,7 +210,7 @@ function CardsOficina() {
     .sort((a, b) => b[1] - a[1]);
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Metric title="OS abertas" value={String(data.abertas)} subtitle={`${data.total} no total`} />
         <Metric title="Recebidas hoje" value={String(data.recebidasHoje)} />
         <Metric title="Entregues hoje" value={String(data.entreguesHoje)} />

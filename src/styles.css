@@ -172,6 +172,36 @@
   padding-inline: 1.5rem;
 }
 
+/* Mobile: alvos de toque maiores e tabelas com scroll horizontal */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px; /* evita zoom automático no iOS */
+    min-height: 2.75rem;
+  }
+  button,
+  [role="button"],
+  a[data-slot="button"] {
+    min-height: 2.5rem;
+  }
+  .container-app {
+    padding-inline: 0.875rem;
+  }
+  [data-slot="table-container"],
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    font-size: 0.8125rem;
+  }
+  [role="dialog"] {
+    max-height: 90dvh;
+    overflow-y: auto;
+  }
+}
+
 @media print {
   body.print-mode [data-sidebar],
   body.print-mode header {
