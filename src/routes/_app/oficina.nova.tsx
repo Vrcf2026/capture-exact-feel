@@ -275,11 +275,13 @@ function NovaOSPage() {
     setAcessorios((prev) => (prev.includes(acc) ? prev.filter((a) => a !== acc) : [...prev, acc]));
   }
 
-  // Cliente rápido dispensa contacto e assinatura do cliente.
+  // Cliente rápido dispensa contacto, assinatura e checklist.
+  const checklistPreenchido = checklist.some((it) => it.status !== null);
   const podeSubmeter =
     clienteNome.trim().length > 0 &&
     sintomas.trim().length > 0 &&
-    (clienteRapido || (assinatura.trim().length > 0 && contacto.trim().length > 0));
+    (clienteRapido ||
+      (assinatura.trim().length > 0 && contacto.trim().length > 0 && checklistPreenchido));
 
   return (
     <div className="max-w-2xl space-y-6">
