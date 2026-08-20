@@ -42,6 +42,8 @@ import {
   Plus,
   ShieldCheck,
   Boxes,
+  DatabaseBackup,
+
 } from "lucide-react";
 
 const meQuery = queryOptions({
@@ -142,6 +144,7 @@ function AppLayout() {
                   <NavItem to="/utilizadores" icon={UserCog} label="Utilizadores" />
                   <NavItem to="/vendedores" icon={FileText} label="Vendedores" />
                   <NavItem to="/empresa" icon={Building2} label="Empresa" />
+                  <NavItem to="/backups" icon={DatabaseBackup} label="Backups" />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
