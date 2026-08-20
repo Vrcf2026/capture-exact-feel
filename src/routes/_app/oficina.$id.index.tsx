@@ -303,7 +303,8 @@ function OSDetalhePage() {
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const checklistIncompleto = checklist.some((it) => it.status === null || it.status === undefined);
   const dadosIncompletos =
-    !!os.cliente_rapido || !os.contacto?.trim() || !os.equipamento?.trim() || !os.marca_modelo?.trim();
+    !os.cliente_rapido &&
+    (!os.contacto?.trim() || !os.equipamento?.trim() || !os.marca_modelo?.trim());
   const jaEntregue = os.status === "entregue";
   const bloqueado = jaEntregue || !editando;
   const podeEntregar =
