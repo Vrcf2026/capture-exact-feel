@@ -87,6 +87,8 @@ export interface OSParaPdf {
   sintomas_cliente: string | null;
   data_rececao: string;
   diagnostico_tecnico: string | null;
+  data_diagnostico?: string | null;
+  tecnico_nome?: string | null;
   aprovado_por: string | null;
   meio_aprovacao: string | null;
   data_aprovacao: string | null;
@@ -276,6 +278,9 @@ export async function generatePdfOS(
   addTitle("3. DIAGNÓSTICO INICIAL");
   addRow("Sintomas", os.sintomas_cliente ?? "");
   addRow("Data Receção", ptDate(os.data_rececao));
+  if (os.tecnico_nome) addRow("Técnico Responsável", os.tecnico_nome);
+  if (os.diagnostico_tecnico) addRow("Verificação Técnica", os.diagnostico_tecnico);
+  if (os.data_diagnostico) addRow("Data Diagnóstico", ptDate(os.data_diagnostico));
 
   if (os.assinatura_rececao) {
     checkPage(35);
