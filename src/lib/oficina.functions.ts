@@ -505,12 +505,25 @@ export const entregarOS = createServerFn({ method: "POST" })
 
 // ============ ADMIN: ELIMINAR / ARQUIVAR ANTIGAS ============
 export const eliminarOS = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .inputValidator((d: unknown) =>
+    z.object({ id: z.string().uuid(), admin_password: z.string().min(1) }).parse(d),
+  )
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const u = await requireOficina();
     if (u.papel !== "admin") throw new Error("Só o administrador pode eliminar ordens de serviço.");
+
+    const bcrypt = (await import("bcryptjs")).default;
+    const { data: row, error: eU } = await supabaseAdmin
+      .from("utilizadores")
+      .select("password_hash")
+      .eq("id", u.id)
+      .maybeSingle();
+    if (eU) throw new Error(eU.message);
+    if (!row || !(await bcrypt.compare(data.admin_password, row.password_hash)))
+      throw new Error("Password de administrador incorreta.");
+
     const { error } = await supabaseAdmin.from("work_orders").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
