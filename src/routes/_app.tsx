@@ -39,6 +39,7 @@ import {
   LogOut,
   Plus,
   ShieldCheck,
+  Boxes,
 } from "lucide-react";
 
 const meQuery = queryOptions({
