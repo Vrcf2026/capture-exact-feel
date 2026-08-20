@@ -188,7 +188,12 @@ function EditDialog({
               const payload = { ...state, password: state.password || undefined };
               m.mutate(payload);
             }}
-            disabled={m.isPending || !state.nome.trim() || (!item.id && !state.password)}
+            disabled={
+              m.isPending ||
+              !state.nome.trim() ||
+              (!item.id && state.password.length < 6) ||
+              (state.password.length > 0 && state.password.length < 6)
+            }
           >
             {m.isPending ? "A guardar…" : "Guardar"}
           </Button>
