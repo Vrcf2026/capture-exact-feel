@@ -137,9 +137,13 @@ export const fichaCliente = createServerFn({ method: "POST" })
 
 // ============ Alertas do Painel ============
 export const alertasPainel = createServerFn({ method: "GET" }).handler(async () => {
-  const { requireUser } = await import("./auth.server");
+  const { getSessionUser } = await import("./auth.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const u = await requireUser();
+  // Sem sessão (ex.: token ainda não anexado após reinício) devolve null em vez
+  // de lançar erro, para o painel não ficar em branco.
+  const u = await getSessionUser();
+  if (!u) return null;
+
 
   const podeLoja = u.acesso_loja || u.papel === "admin";
   const podeOficina = u.acesso_oficina || u.papel === "admin";

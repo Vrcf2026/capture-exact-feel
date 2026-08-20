@@ -32,7 +32,21 @@ export const Route = createFileRoute("/_app/dashboard")({
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(dashQuery),
+  errorComponent: () => (
+    <div className="space-y-3 p-2">
+      <p className="text-sm text-muted-foreground">
+        Não foi possível carregar o painel. Verifique a ligação e tente novamente.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="rounded-md border border-border px-3 py-1.5 text-sm"
+      >
+        Recarregar
+      </button>
+    </div>
+  ),
   component: Dashboard,
+
 });
 
 function Dashboard() {
