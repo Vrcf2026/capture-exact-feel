@@ -325,8 +325,28 @@ export const adicionarItemOS = createServerFn({ method: "POST" })
     await requireOficina();
     const { error } = await supabaseAdmin.from("work_order_itens").insert(data);
     if (error) throw new Error(error.message);
+
+    // Orçamento com itens → avança automaticamente para "Orçamento Enviado"
+    const { data: os } = await supabaseAdmin
+      .from("work_orders")
+      .select("*")
+      .eq("id", data.work_order_id)
+      .maybeSingle();
+    if (os) {
+      const novo = proximoStatusAuto(os as OSRow, true);
+      if (novo) {
+        try {
+          validarClienteRapido(os as OSRow, novo);
+          await supabaseAdmin.from("work_orders").update({ status: novo }).eq("id", data.work_order_id);
+          return { ok: true, status_auto: novo };
+        } catch {
+          return { ok: true, aviso: "checklist_incompleto" as const };
+        }
+      }
+    }
     return { ok: true };
   });
+
 
 export const removerItemOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
