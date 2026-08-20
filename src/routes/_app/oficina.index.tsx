@@ -227,7 +227,8 @@ function OficinaPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        if (window.confirm(`Eliminar a OS #${o.numero}?`)) eliminarM.mutate(o.id);
+                        setAdminPassword("");
+                        setAlvo({ id: o.id, numero: Number(o.numero) });
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -239,6 +240,43 @@ function OficinaPage() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!alvo} onOpenChange={(v) => !v && setAlvo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eliminar OS #{alvo?.numero}</DialogTitle>
+            <DialogDescription>
+              Esta ação é permanente. Confirme com a sua password de administrador.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="admin-pass">Password de administrador</Label>
+            <Input
+              id="admin-pass"
+              type="password"
+              autoComplete="current-password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && adminPassword && alvo)
+                  eliminarM.mutate({ id: alvo.id, admin_password: adminPassword });
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlvo(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!adminPassword || eliminarM.isPending}
+              onClick={() => alvo && eliminarM.mutate({ id: alvo.id, admin_password: adminPassword })}
+            >
+              {eliminarM.isPending ? "A eliminar…" : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
