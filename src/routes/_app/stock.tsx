@@ -237,14 +237,27 @@ function MovDialog({
   onSaved: () => void;
 }) {
   const fn = useServerFn(registarMovimento);
+  const { data: vendedores = [] } = useQuery({ queryKey: ["vendedores"], queryFn: () => listVendedores() });
   const [tipo, setTipo] = useState(tipoInicial);
   const [quantidade, setQuantidade] = useState<number>(1);
   const [motivo, setMotivo] = useState("");
+  const [vendedorId, setVendedorId] = useState("");
+  const [pin, setPin] = useState("");
+
+  useEffect(() => {
+    if (!vendedorId) {
+      const ativo = vendedores.find((v) => v.ativo);
+      if (ativo) setVendedorId(ativo.id);
+    }
+  }, [vendedores, vendedorId]);
 
   const m = useMutation({
-    mutationFn: () => fn({ data: { catalogo_id: artigo.id, tipo, quantidade, motivo } }),
+    mutationFn: () =>
+      fn({
+        data: { catalogo_id: artigo.id, tipo, quantidade, motivo, vendedor_id: vendedorId, vendedor_pin: pin },
+      }),
     onSuccess: (r) => {
-      toast.success(`Movimento registado. Stock atual: ${r.stock}`);
+      toast.success(`Movimento registado por ${r.vendedor}. Stock atual: ${r.stock}`);
       onSaved();
     },
   });
@@ -255,7 +268,12 @@ function MovDialog({
       ? "Indique a quantidade."
       : precisaMotivo && motivo.trim().length < 3
         ? "Justifique a saída/ajuste."
-        : null;
+        : !vendedorId
+          ? "Escolha o vendedor responsável."
+          : !/^\d{4,8}$/.test(pin)
+            ? "Introduza o PIN do vendedor."
+            : null;
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
