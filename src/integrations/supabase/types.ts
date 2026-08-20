@@ -94,33 +94,42 @@ export type Database = {
         Row: {
           ativo: boolean
           codigo: string | null
+          controla_stock: boolean
           created_at: string
           id: string
           nome: string
           preco: number
           preco2: number
+          stock: number
+          stock_minimo: number
           tipo: string
           unidade: string
         }
         Insert: {
           ativo?: boolean
           codigo?: string | null
+          controla_stock?: boolean
           created_at?: string
           id?: string
           nome: string
           preco?: number
           preco2?: number
+          stock?: number
+          stock_minimo?: number
           tipo: string
           unidade?: string
         }
         Update: {
           ativo?: boolean
           codigo?: string | null
+          controla_stock?: boolean
           created_at?: string
           id?: string
           nome?: string
           preco?: number
           preco2?: number
+          stock?: number
+          stock_minimo?: number
           tipo?: string
           unidade?: string
         }
@@ -487,6 +496,74 @@ export type Database = {
             columns: ["utilizador_id"]
             isOneToOne: false
             referencedRelation: "utilizadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_movimentos: {
+        Row: {
+          catalogo_id: string
+          criado_em: string
+          id: string
+          motivo: string | null
+          quantidade: number
+          registo_id: string | null
+          stock_apos: number | null
+          tipo: string
+          utilizador_id: string | null
+          work_order_id: string | null
+        }
+        Insert: {
+          catalogo_id: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          quantidade: number
+          registo_id?: string | null
+          stock_apos?: number | null
+          tipo: string
+          utilizador_id?: string | null
+          work_order_id?: string | null
+        }
+        Update: {
+          catalogo_id?: string
+          criado_em?: string
+          id?: string
+          motivo?: string | null
+          quantidade?: number
+          registo_id?: string | null
+          stock_apos?: number | null
+          tipo?: string
+          utilizador_id?: string | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movimentos_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_registo_id_fkey"
+            columns: ["registo_id"]
+            isOneToOne: false
+            referencedRelation: "registos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_utilizador_id_fkey"
+            columns: ["utilizador_id"]
+            isOneToOne: false
+            referencedRelation: "utilizadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
