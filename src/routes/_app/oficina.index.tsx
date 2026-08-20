@@ -20,6 +20,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, Wrench, BarChart3, Filter, Trash2, Archive } from "lucide-react";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_app/oficina/")({
   head: () => ({
