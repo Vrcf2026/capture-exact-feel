@@ -6,7 +6,8 @@ export const gerarBackupJson = createServerFn({ method: "GET" }).handler(async (
   const { requireAdmin } = await import("./auth.server");
   const { construirBackup } = await import("./backup.server");
   await requireAdmin();
-  return await construirBackup();
+  const backup = await construirBackup();
+  return { json: JSON.stringify(backup, null, 2), contagens: backup.meta.contagens };
 });
 
 /** Contagem de linhas por tabela, para a página de backups. */
@@ -31,7 +32,7 @@ export const dadosTabela = createServerFn({ method: "POST" })
     await requireAdmin();
     const t = TABELAS.find((x) => x === data.tabela);
     if (!t) throw new Error("Tabela inválida");
-    return { tabela: t, rows: await lerTabela(t) };
+    return { tabela: t as string, json: JSON.stringify(await lerTabela(t)) };
   });
 
 /** Todas as tabelas de uma vez (para o ZIP de CSV). */
@@ -39,8 +40,8 @@ export const dadosTodasTabelas = createServerFn({ method: "GET" }).handler(async
   const { requireAdmin } = await import("./auth.server");
   const { TABELAS, lerTabela } = await import("./backup.server");
   await requireAdmin();
-  const out: { tabela: string; rows: Record<string, unknown>[] }[] = [];
-  for (const t of TABELAS) out.push({ tabela: t, rows: await lerTabela(t) });
+  const out: { tabela: string; json: string }[] = [];
+  for (const t of TABELAS) out.push({ tabela: t as string, json: JSON.stringify(await lerTabela(t)) });
   return out;
 });
 
