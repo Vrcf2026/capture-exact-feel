@@ -1,27 +1,36 @@
-# Limpar warnings de `.inputValidator()` → `.validator()`
+# Backups do VRCF
 
-## Contexto
+Nova página **Backups** (só admin) para exportar todos os dados, mais um backup automático diário guardado no armazenamento.
 
-O TanStack Start descontinuou o método `.inputValidator()` em favor de `.validator()`.
-Ambos funcionam, mas o método antigo gera warnings no dev server. São 44 ocorrências
-em 6 ficheiros.
+## 1. Exportar tudo em JSON
 
-## Ficheiros afetados (44 ocorrências no total)
+- Botão "Descarregar backup completo (JSON)" que gera um ficheiro `vrcf-backup-AAAA-MM-DD.json`.
+- Inclui todas as tabelas: clientes, catálogo, registos e itens, pagamentos, caixa diário, saídas de caixa, stock e movimentos, ordens de serviço e itens, vendedores, utilizadores (sem password), definições da empresa.
+- Cabeçalho com data, versão e contagem de linhas por tabela, para se saber logo se o backup está completo.
 
-- `src/lib/loja.functions.ts` — 15
-- `src/lib/oficina.functions.ts` — 14
-- `src/lib/admin.functions.ts` — 8
-- `src/lib/stock.functions.ts` — 3
-- `src/lib/auth.functions.ts` — 2
-- `src/lib/geral.functions.ts` — 2
+## 2. Exportar CSV por tabela
 
-## Plano
+- Lista de tabelas com o número de registos e um botão de download por tabela.
+- Botão "Descarregar todos os CSV" que gera um ZIP com um CSV por tabela.
+- CSV com separador `;` e BOM UTF-8 para abrir directamente no Excel em português (acentos correctos).
 
-1. Substituir `.inputValidator(` por `.validator(` em todos os 6 ficheiros (find-and-replace literal).
-2. Confirmar que o typecheck passa sem erros.
-3. Confirmar que os warnings desapareceram dos logs do dev server.
+## 3. Backup automático diário
 
-## Nota
+- Novo bucket privado `backups` no armazenamento.
+- Todos os dias de madrugada é gerado e guardado o JSON completo em `backups/AAAA/MM/vrcf-backup-AAAA-MM-DD.json`.
+- Na página Backups: lista dos backups automáticos existentes (data e tamanho) com download por link temporário.
+- Retenção: mantém os últimos 30 dias e apaga os mais antigos automaticamente.
+- Também dá para forçar "Gerar backup automático agora" para testar.
 
-Não há alteração de comportamento — é apenas um renomear de API. O `.validator()`
-faz exatamente o mesmo que `.inputValidator()`. Zero risco funcional.
+## 4. Acesso
+
+- Entrada "Backups" na barra lateral visível apenas a admin.
+- Todas as operações validam no servidor que a sessão é de um admin; um operador que tente acessar recebe erro.
+
+## Notas técnicas
+
+- Server functions em `src/lib/backup.functions.ts` (+ `backup.server.ts` para a leitura das tabelas via service role), seguindo o padrão de sessão própria já usado em `admin.functions.ts`.
+- Página `src/routes/_app/backups.tsx`.
+- ZIP gerado no cliente com `jszip` (única dependência nova); os CSV/JSON individuais não precisam de dependências.
+- Agendamento com `pg_cron` + `pg_net` a chamar `src/routes/api/public/backup-diario.ts`, protegido por um segredo `BACKUP_CRON_SECRET` verificado no handler.
+- O bucket `backups` fica privado com políticas deny-all (acesso só via service role e links temporários), igual ao `anexos`.
