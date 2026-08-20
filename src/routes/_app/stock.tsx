@@ -330,6 +330,31 @@ function MovDialog({
               onChange={(e) => setMotivo(e.target.value)}
             />
           </div>
+          <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-1.5">
+              <Label>Vendedor responsável <span className="text-destructive">*</span></Label>
+              <Select value={vendedorId} onValueChange={setVendedorId}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>
+                  {vendedores.filter((v) => v.ativo).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>PIN <span className="text-destructive">*</span></Label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="••••"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              />
+            </div>
+          </div>
+
           {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
           {bloqueio && <div className="text-xs text-muted-foreground">{bloqueio}</div>}
         </div>
