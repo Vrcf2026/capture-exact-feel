@@ -32,6 +32,7 @@ export const listMovimentos = createServerFn({ method: "POST" })
         `id, tipo, quantidade, motivo, stock_apos, criado_em,
          catalogo:catalogo_id(id, codigo, nome, unidade),
          utilizador:utilizador_id(id, nome),
+         vendedor:vendedor_id(id, nome),
          registo:registo_id(id, numero)`,
       )
       .order("criado_em", { ascending: false })
@@ -47,6 +48,8 @@ const movSchema = z
     tipo: z.enum(["entrada", "saida", "ajuste"]),
     quantidade: z.number().positive(),
     motivo: z.string().trim().max(400).optional().nullable(),
+    vendedor_id: z.string().uuid(),
+    vendedor_pin: z.string().regex(/^\d{4,8}$/, "PIN inválido."),
   })
   .refine((m) => m.tipo === "entrada" || (m.motivo ?? "").trim().length >= 3, {
     message: "Indique o motivo da saída/ajuste.",
@@ -58,7 +61,17 @@ export const registarMovimento = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireUser } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const bcrypt = (await import("bcryptjs")).default;
     const u = await requireUser();
+
+    const { data: vend } = await supabaseAdmin
+      .from("vendedores")
+      .select("id, nome, pin_hash, ativo")
+      .eq("id", data.vendedor_id)
+      .maybeSingle();
+    if (!vend || !vend.ativo) throw new Error("Vendedor inválido ou inativo.");
+    const okPin = await bcrypt.compare(data.vendedor_pin, vend.pin_hash);
+    if (!okPin) throw new Error("PIN do vendedor incorreto.");
 
     const { data: item } = await supabaseAdmin
       .from("catalogo")
@@ -91,8 +104,39 @@ export const registarMovimento = createServerFn({ method: "POST" })
       motivo: data.motivo?.trim() || null,
       stock_apos: novo,
       utilizador_id: u.id,
+      vendedor_id: vend.id,
     });
     if (error) throw new Error(error.message);
 
-    return { ok: true, stock: novo };
+    return { ok: true, stock: novo, vendedor: vend.nome };
   });
+
+// Resumo de movimentos por vendedor (controlo de responsabilidade no stock)
+export const resumoPorVendedor = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z.object({ desde: z.string().optional().nullable() }).parse(d ?? {}),
+  )
+  .handler(async ({ data }) => {
+    const { requireUser } = await import("./auth.server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await requireUser();
+    let q = supabaseAdmin
+      .from("stock_movimentos")
+      .select("tipo, quantidade, vendedor:vendedor_id(id, nome)")
+      .not("vendedor_id", "is", null);
+    if (data.desde) q = q.gte("criado_em", data.desde);
+    const { data: rows } = await q;
+    const mapa = new Map<string, { nome: string; entradas: number; saidas: number; ajustes: number }>();
+    for (const r of rows ?? []) {
+      const v = r.vendedor as { id: string; nome: string } | null;
+      if (!v) continue;
+      const cur = mapa.get(v.id) ?? { nome: v.nome, entradas: 0, saidas: 0, ajustes: 0 };
+      const qtd = Number(r.quantidade);
+      if (r.tipo === "entrada") cur.entradas += qtd;
+      else if (r.tipo === "saida") cur.saidas += qtd;
+      else cur.ajustes += qtd;
+      mapa.set(v.id, cur);
+    }
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt"));
+  });
+

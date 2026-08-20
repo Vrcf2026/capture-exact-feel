@@ -511,6 +511,7 @@ export type Database = {
           stock_apos: number | null
           tipo: string
           utilizador_id: string | null
+          vendedor_id: string | null
           work_order_id: string | null
         }
         Insert: {
@@ -523,6 +524,7 @@ export type Database = {
           stock_apos?: number | null
           tipo: string
           utilizador_id?: string | null
+          vendedor_id?: string | null
           work_order_id?: string | null
         }
         Update: {
@@ -535,6 +537,7 @@ export type Database = {
           stock_apos?: number | null
           tipo?: string
           utilizador_id?: string | null
+          vendedor_id?: string | null
           work_order_id?: string | null
         }
         Relationships: [
@@ -557,6 +560,13 @@ export type Database = {
             columns: ["utilizador_id"]
             isOneToOne: false
             referencedRelation: "utilizadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movimentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
           {

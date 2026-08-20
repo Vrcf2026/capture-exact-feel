@@ -1,0 +1,1 @@
+ALTER TABLE public.stock_movimentos ADD COLUMN IF NOT EXISTS vendedor_id uuid REFERENCES public.vendedores(id);

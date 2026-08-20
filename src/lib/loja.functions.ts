@@ -439,6 +439,8 @@ export const criarVenda = createServerFn({ method: "POST" })
           registo_id: reg.id,
           stock_apos: novo,
           utilizador_id: u.id,
+          vendedor_id,
+
         });
       }
     }
@@ -540,7 +542,7 @@ export const anularRegisto = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const u = await requireAdmin();
-    await supabaseAdmin
+    const { data: regAnulado } = await supabaseAdmin
       .from("registos")
       .update({
         anulado: true,
@@ -548,7 +550,10 @@ export const anularRegisto = createServerFn({ method: "POST" })
         anulado_por: u.id,
         anulado_motivo: data.motivo,
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("vendedor_id")
+      .maybeSingle();
+
 
     // Repor stock dos artigos vendidos
     const { data: itens } = await supabaseAdmin
@@ -576,6 +581,8 @@ export const anularRegisto = createServerFn({ method: "POST" })
           registo_id: data.id,
           stock_apos: novo,
           utilizador_id: u.id,
+          vendedor_id: regAnulado?.vendedor_id ?? null,
+
         });
       }
     }

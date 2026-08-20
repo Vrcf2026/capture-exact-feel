@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { listStock, listMovimentos, registarMovimento } from "@/lib/stock.functions";
+import { listStock, listMovimentos, registarMovimento, resumoPorVendedor } from "@/lib/stock.functions";
+import { listVendedores } from "@/lib/admin.functions";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Boxes, ArrowDownToLine, ArrowUpFromLine, History, AlertTriangle } from "lucide-react";
+import { Boxes, ArrowDownToLine, ArrowUpFromLine, History, AlertTriangle, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_app/stock")({
   head: () => ({
@@ -55,6 +57,11 @@ function StockPage() {
   const { data: movs = [] } = useQuery({
     queryKey: ["stock-movimentos"],
     queryFn: () => movFn({ data: { limite: 100 } }),
+  });
+  const resumoFn = useServerFn(resumoPorVendedor);
+  const { data: resumo = [] } = useQuery({
+    queryKey: ["stock-resumo-vendedor"],
+    queryFn: () => resumoFn({ data: {} }),
   });
   const [q, setQ] = useState("");
   const [mov, setMov] = useState<{ artigo: Artigo; tipo: "entrada" | "saida" | "ajuste" } | null>(null);
@@ -169,13 +176,15 @@ function StockPage() {
                   <TableHead className="text-right">Qtd</TableHead>
                   <TableHead className="text-right">Stock após</TableHead>
                   <TableHead>Motivo</TableHead>
+                  <TableHead>Vendedor</TableHead>
                   <TableHead>Utilizador</TableHead>
                 </TableRow>
+
               </TableHeader>
               <TableBody>
                 {movs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
                       Sem movimentos.
                     </TableCell>
                   </TableRow>
@@ -196,7 +205,9 @@ function StockPage() {
                         {m.stock_apos === null ? "—" : Number(m.stock_apos)}
                       </TableCell>
                       <TableCell className="text-sm">{m.motivo ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{m.vendedor?.nome ?? "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{m.utilizador?.nome ?? "—"}</TableCell>
+
                     </TableRow>
                   ))
                 )}
@@ -205,6 +216,48 @@ function StockPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4" /> Movimentos por vendedor
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead className="text-right">Entradas</TableHead>
+                  <TableHead className="text-right">Saídas</TableHead>
+                  <TableHead className="text-right">Ajustes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumo.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                      Sem movimentos associados a vendedores.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  resumo.map((r) => (
+                    <TableRow key={r.nome}>
+                      <TableCell className="font-medium">{r.nome}</TableCell>
+                      <TableCell className="text-right mono">{r.entradas}</TableCell>
+                      <TableCell className="text-right mono">{r.saidas}</TableCell>
+                      <TableCell className="text-right mono">{r.ajustes}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+
 
       {mov && (
         <MovDialog
@@ -216,6 +269,7 @@ function StockPage() {
             await Promise.all([
               qc.invalidateQueries({ queryKey: ["stock"] }),
               qc.invalidateQueries({ queryKey: ["stock-movimentos"] }),
+              qc.invalidateQueries({ queryKey: ["stock-resumo-vendedor"] }),
               qc.invalidateQueries({ queryKey: ["catalogo"] }),
             ]);
           }}
@@ -237,14 +291,27 @@ function MovDialog({
   onSaved: () => void;
 }) {
   const fn = useServerFn(registarMovimento);
+  const { data: vendedores = [] } = useQuery({ queryKey: ["vendedores"], queryFn: () => listVendedores() });
   const [tipo, setTipo] = useState(tipoInicial);
   const [quantidade, setQuantidade] = useState<number>(1);
   const [motivo, setMotivo] = useState("");
+  const [vendedorId, setVendedorId] = useState("");
+  const [pin, setPin] = useState("");
+
+  useEffect(() => {
+    if (!vendedorId) {
+      const ativo = vendedores.find((v) => v.ativo);
+      if (ativo) setVendedorId(ativo.id);
+    }
+  }, [vendedores, vendedorId]);
 
   const m = useMutation({
-    mutationFn: () => fn({ data: { catalogo_id: artigo.id, tipo, quantidade, motivo } }),
+    mutationFn: () =>
+      fn({
+        data: { catalogo_id: artigo.id, tipo, quantidade, motivo, vendedor_id: vendedorId, vendedor_pin: pin },
+      }),
     onSuccess: (r) => {
-      toast.success(`Movimento registado. Stock atual: ${r.stock}`);
+      toast.success(`Movimento registado por ${r.vendedor}. Stock atual: ${r.stock}`);
       onSaved();
     },
   });
@@ -255,7 +322,12 @@ function MovDialog({
       ? "Indique a quantidade."
       : precisaMotivo && motivo.trim().length < 3
         ? "Justifique a saída/ajuste."
-        : null;
+        : !vendedorId
+          ? "Escolha o vendedor responsável."
+          : !/^\d{4,8}$/.test(pin)
+            ? "Introduza o PIN do vendedor."
+            : null;
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -310,6 +382,31 @@ function MovDialog({
               onChange={(e) => setMotivo(e.target.value)}
             />
           </div>
+          <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-3">
+            <div className="space-y-1.5">
+              <Label>Vendedor responsável <span className="text-destructive">*</span></Label>
+              <Select value={vendedorId} onValueChange={setVendedorId}>
+                <SelectTrigger><SelectValue placeholder="Escolher…" /></SelectTrigger>
+                <SelectContent>
+                  {vendedores.filter((v) => v.ativo).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>PIN <span className="text-destructive">*</span></Label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="••••"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              />
+            </div>
+          </div>
+
           {m.error && <div className="text-sm text-destructive">{(m.error as Error).message}</div>}
           {bloqueio && <div className="text-xs text-muted-foreground">{bloqueio}</div>}
         </div>

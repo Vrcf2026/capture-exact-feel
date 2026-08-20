@@ -2,6 +2,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
+
 import {
   getOS,
   atualizarOS,
@@ -146,6 +148,15 @@ function OSDetalhePage() {
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["os", id] });
 
+  function avisarAuto(r: { status_auto?: string; aviso?: string } | undefined) {
+    if (r?.status_auto) {
+      toast.success(`Estado atualizado automaticamente para "${STATUS_LABELS[r.status_auto as StatusOS]}".`);
+    }
+    if (r?.aviso === "checklist_incompleto") {
+      toast.warning("Dados guardados, mas o checklist de entrada tem de estar completo para o estado avançar.");
+    }
+  }
+
   const statusM = useMutation({
     mutationFn: (novoStatus: StatusOS) => {
       const oldIdx = STATUS_ORDER.indexOf(data!.os.status as StatusOS);
@@ -154,11 +165,16 @@ function OSDetalhePage() {
       return mudarStatus({ data: { id, status: novoStatus, auto_status_locked: locked } });
     },
     onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const campoM = useMutation({
     mutationFn: (campo: Record<string, unknown>) => atualizar({ data: { id, ...campo } }),
-    onSuccess: invalidate,
+    onSuccess: (r) => {
+      avisarAuto(r as never);
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const assinarRecM = useMutation({
@@ -179,14 +195,17 @@ function OSDetalhePage() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (r) => {
       setNovaDesc("");
       setNovaQtd("1");
       setNovoPreco("0");
       setNovoItemCatalogo("_livre");
+      avisarAuto(r as never);
       invalidate();
     },
+    onError: (e: Error) => toast.error(e.message),
   });
+
 
   const delItemM = useMutation({
     mutationFn: (itemId: string) => delItem({ data: { id: itemId } }),
@@ -282,6 +301,9 @@ function OSDetalhePage() {
   const acessoriosAtuais: string[] = (os.acessorios as string[] | null) ?? [];
   const acessoriosConhecidos = acessoriosAtuais.filter((a) => (ACESSORIOS_OPTIONS as readonly string[]).includes(a));
   const acessoriosOutros = acessoriosAtuais.filter((a) => !(ACESSORIOS_OPTIONS as readonly string[]).includes(a));
+  const checklistIncompleto = checklist.some((it) => it.status === null || it.status === undefined);
+  const dadosIncompletos =
+    !!os.cliente_rapido || !os.contacto?.trim() || !os.equipamento?.trim() || !os.marca_modelo?.trim();
   const jaEntregue = os.status === "entregue";
   const bloqueado = jaEntregue || !editando;
   const podeEntregar =
@@ -367,25 +389,54 @@ function OSDetalhePage() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4 text-primary" /> Dados do cliente e equipamento</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-muted-foreground">Contacto: </span>
-            {os.contacto ?? "—"}
+        <CardContent className="space-y-4">
+          {!bloqueado && (
+            <p className="text-xs text-muted-foreground">
+              Corrija os dados e clique fora do campo para guardar.
+            </p>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {([
+              ["cliente_nome", "Nome do cliente", os.cliente_nome ?? ""],
+              ["contacto", "Contacto", os.contacto ?? ""],
+              ["equipamento", "Equipamento", os.equipamento ?? ""],
+              ["marca_modelo", "Marca / modelo", os.marca_modelo ?? ""],
+              ["num_serie", "Nº de série", os.num_serie ?? ""],
+              ["password_pin", "Password / PIN", os.password_pin ?? ""],
+            ] as const).map(([campo, label, valor]) => (
+              <div className="space-y-1.5" key={campo}>
+                <Label>{label}</Label>
+                <Input
+                  key={`${campo}-${valor}`}
+                  disabled={bloqueado}
+                  defaultValue={valor}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v === valor) return;
+                    if (campo === "cliente_nome" && !v) {
+                      toast.error("O nome do cliente é obrigatório.");
+                      e.target.value = valor;
+                      return;
+                    }
+                    campoM.mutate({ [campo]: v || null });
+                  }}
+                />
+              </div>
+            ))}
           </div>
-          <div>
-            <span className="text-muted-foreground">Nº série: </span>
-            {os.num_serie ?? "—"}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Receção: </span>
-            {dt(os.data_rececao)}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Cliente rápido: </span>
-            {os.cliente_rapido ? "Sim" : "Não"}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Receção: </span>
+              {dt(os.data_rececao)}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Cliente rápido: </span>
+              {os.cliente_rapido ? "Sim" : "Não"}
+            </div>
           </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
@@ -416,6 +467,11 @@ function OSDetalhePage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" /> Checklist de entrada</CardTitle>
+          {checklistIncompleto && dadosIncompletos && (
+            <p className="text-xs text-destructive">
+              Cliente rápido / dados incompletos: preencha todos os itens do checklist para o estado poder avançar.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">

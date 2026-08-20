@@ -203,18 +203,38 @@ export const atualizarOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { proximoStatusAuto, validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
     const { id, ...resto } = data;
-    const { error } = await supabaseAdmin
+    const { data: os, error } = await supabaseAdmin
       .from("work_orders")
       .update({ ...resto, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select("*")
+      .maybeSingle();
     if (error) throw new Error(error.message);
+
+    // Auto-avanço de estado após a atualização
+    if (os) {
+      const { count } = await supabaseAdmin
+        .from("work_order_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("work_order_id", id);
+      const novo = proximoStatusAuto(os as Record<string, unknown>, (count ?? 0) > 0);
+      if (novo) {
+        try {
+          validarClienteRapido(os as Record<string, unknown>, novo);
+          await supabaseAdmin.from("work_orders").update({ status: novo }).eq("id", id);
+          return { ok: true, status_auto: novo };
+        } catch {
+          // Sem checklist completo: guarda os dados mas mantém o estado.
+          return { ok: true, aviso: "checklist_incompleto" as const };
+        }
+      }
+    }
     return { ok: true };
   });
 
-// Aplica as mesmas transições automáticas de estado do vrcftecnica original,
-// a não ser que auto_status_locked esteja ativo (o utilizador já recuou o estado à mão).
 export const mudarStatusOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), status: z.enum(STATUS_OS), auto_status_locked: z.boolean() }).parse(d),
@@ -222,7 +242,17 @@ export const mudarStatusOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
+
+    const { data: os } = await supabaseAdmin
+      .from("work_orders")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!os) throw new Error("Ordem de serviço não encontrada.");
+    validarClienteRapido(os as Record<string, unknown>, data.status);
+
     const { error } = await supabaseAdmin
       .from("work_orders")
       .update({
@@ -234,6 +264,7 @@ export const mudarStatusOS = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
 
 // ============ ITENS (ORÇAMENTO — ligado ao catálogo partilhado com a Loja) ============
 const itemSchema = z.object({
@@ -249,11 +280,32 @@ export const adicionarItemOS = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireOficina } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { proximoStatusAuto, validarClienteRapido } = await import("./oficina-status.server");
     await requireOficina();
     const { error } = await supabaseAdmin.from("work_order_itens").insert(data);
     if (error) throw new Error(error.message);
+
+    // Orçamento com itens → avança automaticamente para "Orçamento Enviado"
+    const { data: os } = await supabaseAdmin
+      .from("work_orders")
+      .select("*")
+      .eq("id", data.work_order_id)
+      .maybeSingle();
+    if (os) {
+      const novo = proximoStatusAuto(os as Record<string, unknown>, true);
+      if (novo) {
+        try {
+          validarClienteRapido(os as Record<string, unknown>, novo);
+          await supabaseAdmin.from("work_orders").update({ status: novo }).eq("id", data.work_order_id);
+          return { ok: true, status_auto: novo };
+        } catch {
+          return { ok: true, aviso: "checklist_incompleto" as const };
+        }
+      }
+    }
     return { ok: true };
   });
+
 
 export const removerItemOS = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
