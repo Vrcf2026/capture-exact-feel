@@ -23,6 +23,9 @@ const catSchema = z.object({
   preco2: z.number().min(0).default(0),
   unidade: z.string().trim().min(1).default("unidade"),
   ativo: z.boolean().default(true),
+  controla_stock: z.boolean().default(false),
+  stock: z.number().min(0).default(0),
+  stock_minimo: z.number().min(0).default(0),
 });
 
 
@@ -32,15 +35,32 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./auth.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await requireAdmin();
-    const { id, ...rest } = data;
+    const { id, stock, ...rest } = data;
     const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
     if (id) {
+      // O stock atual só muda por movimentos (entradas/saídas), nunca na edição do artigo.
       const { error } = await supabaseAdmin.from("catalogo").update(payload).eq("id", id);
       if (error) throw new Error(error.message);
       return { id };
     } else {
-      const { data: row, error } = await supabaseAdmin.from("catalogo").insert(payload).select("id").single();
+      const stockInicial = payload.controla_stock ? stock : 0;
+      const { data: row, error } = await supabaseAdmin
+        .from("catalogo")
+        .insert({ ...payload, stock: stockInicial })
+        .select("id")
+        .single();
       if (error) throw new Error(error.message);
+      if (stockInicial > 0) {
+        const u = await requireAdmin();
+        await supabaseAdmin.from("stock_movimentos").insert({
+          catalogo_id: row.id,
+          tipo: "entrada",
+          quantidade: stockInicial,
+          motivo: "Stock inicial",
+          stock_apos: stockInicial,
+          utilizador_id: u.id,
+        });
+      }
       return { id: row.id };
     }
   });

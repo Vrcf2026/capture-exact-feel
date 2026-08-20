@@ -39,6 +39,7 @@ import {
   LogOut,
   Plus,
   ShieldCheck,
+  Boxes,
 } from "lucide-react";
 
 const meQuery = queryOptions({
@@ -109,6 +110,7 @@ function AppLayout() {
                   <NavItem to="/registos" icon={ClipboardList} label="Registos" />
                   <NavItem to="/conta-corrente" icon={BadgeEuro} label="Conta-corrente" />
                   <NavItem to="/catalogo" icon={Package} label="Catálogo" />
+                  <NavItem to="/stock" icon={Boxes} label="Stocks" />
                   <NavItem to="/clientes" icon={Users} label="Clientes" />
                   {isAdmin && <NavItem to="/relatorios" icon={BarChart3} label="Relatórios" />}
                 </SidebarMenu>

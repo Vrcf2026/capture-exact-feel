@@ -417,6 +417,33 @@ export const criarVenda = createServerFn({ method: "POST" })
     const { error: eIt } = await supabaseAdmin.from("registo_itens").insert(itens);
     if (eIt) throw new Error(eIt.message);
 
+    // Saída de stock automática para artigos com controlo de stock
+    const idsCat = [...new Set(data.itens.map((it) => it.catalogo_id).filter(Boolean) as string[])];
+    if (idsCat.length) {
+      const { data: arts } = await supabaseAdmin
+        .from("catalogo")
+        .select("id, nome, stock, controla_stock")
+        .in("id", idsCat);
+      for (const art of arts ?? []) {
+        if (!art.controla_stock) continue;
+        const qtd = data.itens
+          .filter((it) => it.catalogo_id === art.id)
+          .reduce((s, it) => s + it.quantidade, 0);
+        const novo = Math.round((Number(art.stock ?? 0) - qtd) * 1000) / 1000;
+        await supabaseAdmin.from("catalogo").update({ stock: novo }).eq("id", art.id);
+        await supabaseAdmin.from("stock_movimentos").insert({
+          catalogo_id: art.id,
+          tipo: "saida",
+          quantidade: qtd,
+          motivo: `Venda #${reg.numero}`,
+          registo_id: reg.id,
+          stock_apos: novo,
+          utilizador_id: u.id,
+        });
+      }
+    }
+
+
     const pags = data.pagamentos.map((p) => ({
       registo_id: reg.id,
       caixa_diario_id: caixa.id,
@@ -522,6 +549,36 @@ export const anularRegisto = createServerFn({ method: "POST" })
         anulado_motivo: data.motivo,
       })
       .eq("id", data.id);
+
+    // Repor stock dos artigos vendidos
+    const { data: itens } = await supabaseAdmin
+      .from("registo_itens")
+      .select("catalogo_id, quantidade")
+      .eq("registo_id", data.id);
+    const ids = [...new Set((itens ?? []).map((i) => i.catalogo_id).filter(Boolean) as string[])];
+    if (ids.length) {
+      const { data: arts } = await supabaseAdmin
+        .from("catalogo")
+        .select("id, stock, controla_stock")
+        .in("id", ids);
+      for (const art of arts ?? []) {
+        if (!art.controla_stock) continue;
+        const qtd = (itens ?? [])
+          .filter((i) => i.catalogo_id === art.id)
+          .reduce((s, i) => s + Number(i.quantidade), 0);
+        const novo = Math.round((Number(art.stock ?? 0) + qtd) * 1000) / 1000;
+        await supabaseAdmin.from("catalogo").update({ stock: novo }).eq("id", art.id);
+        await supabaseAdmin.from("stock_movimentos").insert({
+          catalogo_id: art.id,
+          tipo: "entrada",
+          quantidade: qtd,
+          motivo: `Anulação de venda: ${data.motivo}`,
+          registo_id: data.id,
+          stock_apos: novo,
+          utilizador_id: u.id,
+        });
+      }
+    }
     return { ok: true };
   });
 

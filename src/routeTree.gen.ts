@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppVendedoresRouteImport } from './routes/_app/vendedores'
 import { Route as AppVendasRouteImport } from './routes/_app/vendas'
 import { Route as AppUtilizadoresRouteImport } from './routes/_app/utilizadores'
+import { Route as AppStockRouteImport } from './routes/_app/stock'
 import { Route as AppRelatoriosRouteImport } from './routes/_app/relatorios'
 import { Route as AppEmpresaRouteImport } from './routes/_app/empresa'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -59,6 +60,11 @@ const AppVendasRoute = AppVendasRouteImport.update({
 const AppUtilizadoresRoute = AppUtilizadoresRouteImport.update({
   id: '/utilizadores',
   path: '/utilizadores',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStockRoute = AppStockRouteImport.update({
+  id: '/stock',
+  path: '/stock',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRelatoriosRoute = AppRelatoriosRouteImport.update({
@@ -151,6 +157,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/stock': typeof AppStockRoute
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/empresa': typeof AppEmpresaRoute
   '/relatorios': typeof AppRelatoriosRoute
+  '/stock': typeof AppStockRoute
   '/utilizadores': typeof AppUtilizadoresRoute
   '/vendas': typeof AppVendasRoute
   '/vendedores': typeof AppVendedoresRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/empresa': typeof AppEmpresaRoute
   '/_app/relatorios': typeof AppRelatoriosRoute
+  '/_app/stock': typeof AppStockRoute
   '/_app/utilizadores': typeof AppUtilizadoresRoute
   '/_app/vendas': typeof AppVendasRoute
   '/_app/vendedores': typeof AppVendedoresRoute
@@ -224,6 +233,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/empresa'
     | '/relatorios'
+    | '/stock'
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/empresa'
     | '/relatorios'
+    | '/stock'
     | '/utilizadores'
     | '/vendas'
     | '/vendedores'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/empresa'
     | '/_app/relatorios'
+    | '/_app/stock'
     | '/_app/utilizadores'
     | '/_app/vendas'
     | '/_app/vendedores'
@@ -334,6 +346,13 @@ declare module '@tanstack/react-router' {
       path: '/utilizadores'
       fullPath: '/utilizadores'
       preLoaderRoute: typeof AppUtilizadoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/stock': {
+      id: '/_app/stock'
+      path: '/stock'
+      fullPath: '/stock'
+      preLoaderRoute: typeof AppStockRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/relatorios': {
@@ -458,6 +477,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEmpresaRoute: typeof AppEmpresaRoute
   AppRelatoriosRoute: typeof AppRelatoriosRoute
+  AppStockRoute: typeof AppStockRoute
   AppUtilizadoresRoute: typeof AppUtilizadoresRoute
   AppVendasRoute: typeof AppVendasRoute
   AppVendedoresRoute: typeof AppVendedoresRoute
@@ -480,6 +500,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEmpresaRoute: AppEmpresaRoute,
   AppRelatoriosRoute: AppRelatoriosRoute,
+  AppStockRoute: AppStockRoute,
   AppUtilizadoresRoute: AppUtilizadoresRoute,
   AppVendasRoute: AppVendasRoute,
   AppVendedoresRoute: AppVendedoresRoute,

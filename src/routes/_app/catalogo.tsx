@@ -76,7 +76,7 @@ function CatalogoPage() {
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "", codigo: "" })}>
+          <Button onClick={() => setEditing({ tipo: "produto", unidade: "unidade", ativo: true, preco: 0, preco2: 0, nome: "", codigo: "", controla_stock: false, stock: 0, stock_minimo: 0 })}>
             <Plus className="h-4 w-4 mr-1" /> Novo item
           </Button>
         )}
@@ -100,6 +100,7 @@ function CatalogoPage() {
               <TableHead className="text-right">Preço</TableHead>
               <TableHead className="text-right">Preço 2</TableHead>
               <TableHead>Unidade</TableHead>
+              <TableHead className="text-right">Stock</TableHead>
               <TableHead>Estado</TableHead>
               {isAdmin && <TableHead className="w-12"></TableHead>}
             </TableRow>
@@ -107,7 +108,7 @@ function CatalogoPage() {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-muted-foreground py-8">
                   Sem itens.
                 </TableCell>
               </TableRow>
@@ -125,6 +126,15 @@ function CatalogoPage() {
                     {eur(i.preco2)}
                   </TableCell>
                   <TableCell>{i.unidade}</TableCell>
+                  <TableCell className="text-right mono">
+                    {i.controla_stock ? (
+                      <span className={Number(i.stock) <= Number(i.stock_minimo) ? "text-destructive font-semibold" : ""}>
+                        {Number(i.stock)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     {i.ativo ? (
                       <Badge variant="outline">Ativo</Badge>
@@ -192,6 +202,9 @@ function EditDialog({
     preco2: Number(item.preco2 ?? 0),
     unidade: item.unidade ?? "unidade",
     ativo: item.ativo ?? true,
+    controla_stock: item.controla_stock ?? false,
+    stock: Number(item.stock ?? 0),
+    stock_minimo: Number(item.stock_minimo ?? 0),
   });
 
   return (
@@ -257,6 +270,42 @@ function EditDialog({
           <div className="flex items-center gap-2">
             <Switch checked={state.ativo} onCheckedChange={(v) => setState({ ...state, ativo: v })} />
             <Label>Ativo</Label>
+          </div>
+
+          <div className="rounded-lg border border-border p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={state.controla_stock}
+                onCheckedChange={(v) => setState({ ...state, controla_stock: v })}
+              />
+              <Label>Controlar stock deste artigo</Label>
+            </div>
+            {state.controla_stock && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>{item.id ? "Stock atual" : "Stock inicial"}</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    disabled={!!item.id}
+                    value={state.stock}
+                    onChange={(e) => setState({ ...state, stock: Number(e.target.value) })}
+                  />
+                  {item.id && (
+                    <p className="text-xs text-muted-foreground">
+                      Alterado apenas por entradas/saídas na página Stocks.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Stock mínimo</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={state.stock_minimo}
+                    onChange={(e) => setState({ ...state, stock_minimo: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
           {m.error && (
             <div className="text-sm text-destructive">{(m.error as Error).message}</div>
