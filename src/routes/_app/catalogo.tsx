@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { SortHeader, comparar, type SortState } from "@/components/SortHeader";
+
 import { listCatalogo, upsertCatalogo, deleteCatalogo } from "@/lib/admin.functions";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
