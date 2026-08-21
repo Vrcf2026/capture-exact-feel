@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS catalogo_codigo_unico ON public.catalogo (lower(codigo)) WHERE codigo IS NOT NULL;
