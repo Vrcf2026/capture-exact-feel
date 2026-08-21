@@ -37,6 +37,17 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
     await requireLoja();
     const { id, stock, ...rest } = data;
     const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
+    if (payload.codigo) {
+      let dup = supabaseAdmin.from("catalogo").select("id, nome").ilike("codigo", payload.codigo);
+      if (id) dup = dup.neq("id", id);
+      const { data: existentes } = await dup.limit(1);
+      if (existentes && existentes.length > 0) {
+        throw new Error(
+          `Já existe um artigo com o código "${payload.codigo}": ${existentes[0].nome}. Usa outro código.`,
+        );
+      }
+    }
+
     if (id) {
       // O stock atual só muda por movimentos (entradas/saídas), nunca na edição do artigo.
       const { error } = await supabaseAdmin.from("catalogo").update(payload).eq("id", id);
