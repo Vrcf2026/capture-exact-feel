@@ -120,11 +120,22 @@ export const upsertCliente = createServerFn({ method: "POST" })
       email: data.email || null,
       linha_preco: data.linha_preco,
     };
+    if (payload.nif) {
+      let dup = supabaseAdmin.from("clientes").select("id, nome").eq("nif", payload.nif);
+      if (data.id) dup = dup.neq("id", data.id);
+      const { data: existentes } = await dup.limit(1);
+      if (existentes && existentes.length > 0) {
+        throw new Error(
+          `Já existe um cliente com o NIF ${payload.nif}: ${existentes[0].nome}.`,
+        );
+      }
+    }
 
     if (data.id) {
       await supabaseAdmin.from("clientes").update(payload).eq("id", data.id);
       return { id: data.id };
     }
+
     const { data: row, error } = await supabaseAdmin.from("clientes").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id };
