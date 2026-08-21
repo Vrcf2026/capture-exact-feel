@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { SortHeader, comparar, type SortState } from "@/components/SortHeader";
+
 import { listClientes, upsertCliente, deleteCliente } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,20 +44,35 @@ export const Route = createFileRoute("/_app/clientes/")({
 
 type Cliente = Awaited<ReturnType<typeof listClientes>>[number];
 
+type SortKey = "nome" | "nif" | "telefone" | "email" | "linha_preco";
+
 function ClientesPage() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["clientes"], queryFn: () => listClientes() });
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortState<SortKey>>({ key: "nome", dir: "asc" });
   const [editing, setEditing] = useState<Partial<Cliente> | null>(null);
-  const termo = q.toLowerCase().trim();
-  const filtered = data.filter(
-    (c) =>
-      !termo ||
-      c.nome.toLowerCase().includes(termo) ||
-      (c.nif ?? "").toLowerCase().includes(termo) ||
-      (c.telefone ?? "").toLowerCase().includes(termo) ||
-      (c.email ?? "").toLowerCase().includes(termo),
-  );
+
+  const onSort = (k: SortKey) =>
+    setSort((s) => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "asc" }));
+
+  const termos = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const filtered = useMemo(() => {
+    const base = data.filter((c) => {
+      const texto = `${c.nome} ${c.nif ?? ""} ${c.telefone ?? ""} ${c.email ?? ""}`.toLowerCase();
+      return termos.every((t) => texto.includes(t));
+    });
+    const valor = (c: Cliente) => {
+      switch (sort.key) {
+        case "nome": return c.nome;
+        case "nif": return c.nif ?? "";
+        case "telefone": return c.telefone ?? "";
+        case "email": return c.email ?? "";
+        case "linha_preco": return Number(c.linha_preco);
+      }
+    };
+    return [...base].sort((a, b) => comparar(valor(a), valor(b), sort.dir));
+  }, [data, termos.join(" "), sort]);
 
 
   const delFn = useServerFn(deleteCliente);
@@ -76,25 +93,29 @@ function ClientesPage() {
           <Plus className="h-4 w-4 mr-1" /> Novo cliente
         </Button>
       </div>
-      <Input
-        placeholder="Procurar por nome, NIF, telefone ou email…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="max-w-sm"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Procurar por nome, NIF, telefone ou email…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="max-w-sm"
+        />
+        <span className="text-sm text-muted-foreground">{filtered.length} de {data.length}</span>
+      </div>
 
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>NIF</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Preço</TableHead>
+              <SortHeader campo="nome" sort={sort} onSort={onSort}>Nome</SortHeader>
+              <SortHeader campo="nif" sort={sort} onSort={onSort}>NIF</SortHeader>
+              <SortHeader campo="telefone" sort={sort} onSort={onSort}>Telefone</SortHeader>
+              <SortHeader campo="email" sort={sort} onSort={onSort}>Email</SortHeader>
+              <SortHeader campo="linha_preco" sort={sort} onSort={onSort}>Preço</SortHeader>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>

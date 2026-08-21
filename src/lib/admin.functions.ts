@@ -37,6 +37,17 @@ export const upsertCatalogo = createServerFn({ method: "POST" })
     await requireLoja();
     const { id, stock, ...rest } = data;
     const payload = { ...rest, codigo: rest.codigo?.trim() ? rest.codigo.trim() : null };
+    if (payload.codigo) {
+      let dup = supabaseAdmin.from("catalogo").select("id, nome").ilike("codigo", payload.codigo);
+      if (id) dup = dup.neq("id", id);
+      const { data: existentes } = await dup.limit(1);
+      if (existentes && existentes.length > 0) {
+        throw new Error(
+          `Já existe um artigo com o código "${payload.codigo}": ${existentes[0].nome}. Usa outro código.`,
+        );
+      }
+    }
+
     if (id) {
       // O stock atual só muda por movimentos (entradas/saídas), nunca na edição do artigo.
       const { error } = await supabaseAdmin.from("catalogo").update(payload).eq("id", id);
@@ -109,11 +120,22 @@ export const upsertCliente = createServerFn({ method: "POST" })
       email: data.email || null,
       linha_preco: data.linha_preco,
     };
+    if (payload.nif) {
+      let dup = supabaseAdmin.from("clientes").select("id, nome").eq("nif", payload.nif);
+      if (data.id) dup = dup.neq("id", data.id);
+      const { data: existentes } = await dup.limit(1);
+      if (existentes && existentes.length > 0) {
+        throw new Error(
+          `Já existe um cliente com o NIF ${payload.nif}: ${existentes[0].nome}.`,
+        );
+      }
+    }
 
     if (data.id) {
       await supabaseAdmin.from("clientes").update(payload).eq("id", data.id);
       return { id: data.id };
     }
+
     const { data: row, error } = await supabaseAdmin.from("clientes").insert(payload).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id };

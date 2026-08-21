@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { SortHeader, comparar, type SortState } from "@/components/SortHeader";
+
 import { listCatalogo, upsertCatalogo, deleteCatalogo } from "@/lib/admin.functions";
 import { eur } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,8 @@ export const Route = createFileRoute("/_app/catalogo")({
 
 type Item = Awaited<ReturnType<typeof listCatalogo>>[number];
 
+type SortKey = "codigo" | "nome" | "tipo" | "preco" | "preco2" | "stock" | "ativo";
+
 function CatalogoPage() {
   const { currentUser } = AppRoute.useRouteContext();
   const isAdmin = currentUser.papel === "admin";
@@ -53,12 +57,36 @@ function CatalogoPage() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["catalogo"], queryFn: () => listCatalogo() });
   const [q, setQ] = useState("");
+  const [filtro, setFiltro] = useState<"todos" | "ativos" | "inativos" | "stock_baixo">("ativos");
+  const [sort, setSort] = useState<SortState<SortKey>>({ key: "nome", dir: "asc" });
   const [editing, setEditing] = useState<Partial<Item> | null>(null);
 
-  const termo = q.toLowerCase().trim();
-  const filtered = data.filter(
-    (i) => !termo || i.nome.toLowerCase().includes(termo) || (i.codigo ?? "").toLowerCase().includes(termo),
-  );
+  const onSort = (k: SortKey) =>
+    setSort((s) => (s.key === k ? { key: k, dir: s.dir === "asc" ? "desc" : "asc" } : { key: k, dir: "asc" }));
+
+  const termos = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const filtered = useMemo(() => {
+    const base = data.filter((i) => {
+      if (filtro === "ativos" && !i.ativo) return false;
+      if (filtro === "inativos" && i.ativo) return false;
+      if (filtro === "stock_baixo" && !(i.controla_stock && Number(i.stock) <= Number(i.stock_minimo)))
+        return false;
+      const texto = `${i.codigo ?? ""} ${i.nome} ${i.tipo} ${i.unidade}`.toLowerCase();
+      return termos.every((t) => texto.includes(t));
+    });
+    const valor = (i: Item) => {
+      switch (sort.key) {
+        case "codigo": return i.codigo ?? "";
+        case "nome": return i.nome;
+        case "tipo": return i.tipo;
+        case "preco": return Number(i.preco);
+        case "preco2": return Number(i.preco2);
+        case "stock": return i.controla_stock ? Number(i.stock) : null;
+        case "ativo": return Boolean(i.ativo);
+      }
+    };
+    return [...base].sort((a, b) => comparar(valor(a), valor(b), sort.dir));
+  }, [data, termos.join(" "), filtro, sort]);
 
 
   const delFn = useServerFn(deleteCatalogo);
@@ -83,26 +111,38 @@ function CatalogoPage() {
         )}
       </div>
 
-      <Input
-        placeholder="Procurar por código ou nome…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        className="max-w-sm"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          placeholder="Procurar (código, nome, tipo, unidade)…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="max-w-sm"
+        />
+        <Select value={filtro} onValueChange={(v) => setFiltro(v as typeof filtro)}>
+          <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ativos">Só ativos</SelectItem>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="inativos">Só inativos</SelectItem>
+            <SelectItem value="stock_baixo">Stock baixo</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-muted-foreground">{filtered.length} de {data.length}</span>
+      </div>
 
 
       <div className="rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-28">Código</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead className="text-right">Preço</TableHead>
-              <TableHead className="text-right">Preço 2</TableHead>
+              <SortHeader campo="codigo" sort={sort} onSort={onSort} className="w-28">Código</SortHeader>
+              <SortHeader campo="nome" sort={sort} onSort={onSort}>Nome</SortHeader>
+              <SortHeader campo="tipo" sort={sort} onSort={onSort}>Tipo</SortHeader>
+              <SortHeader campo="preco" sort={sort} onSort={onSort} align="right">Preço</SortHeader>
+              <SortHeader campo="preco2" sort={sort} onSort={onSort} align="right">Preço 2</SortHeader>
               <TableHead>Unidade</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
-              <TableHead>Estado</TableHead>
+              <SortHeader campo="stock" sort={sort} onSort={onSort} align="right">Stock</SortHeader>
+              <SortHeader campo="ativo" sort={sort} onSort={onSort}>Estado</SortHeader>
               {podeEditar && <TableHead className="w-12"></TableHead>}
             </TableRow>
           </TableHeader>
@@ -118,6 +158,7 @@ function CatalogoPage() {
                 <TableRow key={i.id}>
                   <TableCell className="mono text-xs text-muted-foreground">{i.codigo ?? "—"}</TableCell>
                   <TableCell className="font-medium">{i.nome}</TableCell>
+
 
                   <TableCell>
                     <Badge variant={i.tipo === "produto" ? "secondary" : "outline"}>{i.tipo}</Badge>
